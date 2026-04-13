@@ -1,19 +1,22 @@
 """
 CareerOps – The Autonomous Career Command Center.
-Entry point: sidebar nav + header + page content.
+Entry point: page config, CSS injection, session state, nav routing.
 """
 import streamlit as st
-from config import DAILY_APPLICATIONS_DONE_KEY
+from config import (
+    DAILY_APPLICATIONS_DONE_KEY,
+    DAILY_GOAL_KEY,
+    CURRENT_PAGE_KEY,
+    DEFAULT_DAILY_GOAL,
+)
 from components.header import inject_css, render_header
-from data.mock_data import DAILY_APPLICATIONS_DONE, DAILY_GOAL_APPLICATIONS
-
-# Page render functions (implemented in pages/)
 from pages.dashboard import render_dashboard
 from pages.generate_resume import render_generate_resume
 from pages.applications import render_applications
 from pages.analytics import render_analytics
 from pages.master_profile import render_master_profile
 from pages.settings import render_settings
+
 
 PAGES = {
     "Dashboard": render_dashboard,
@@ -24,20 +27,82 @@ PAGES = {
     "Settings": render_settings,
 }
 
-st.set_page_config(page_title="CareerOps", page_icon="📋", layout="wide", initial_sidebar_state="expanded")
-inject_css()
+PAGE_ICONS = {
+    "Dashboard": "📊",
+    "Generate Resume": "📄",
+    "Applications": "📁",
+    "Analytics": "📈",
+    "Master Profile": "🧑‍💻",
+    "Settings": "⚙️",
+}
 
-with st.sidebar:
-    st.markdown("## CareerOps")
-    st.markdown("---")
-    page = st.radio(
-        "Navigation",
-        list(PAGES.keys()),
-        label_visibility="collapsed",
-        key="main_nav",
+
+def init_session_state() -> None:
+    """Initialize all required session state variables with safe defaults."""
+    defaults = {
+        DAILY_APPLICATIONS_DONE_KEY: 0,   # no longer seeded from mock_data
+        DAILY_GOAL_KEY: DEFAULT_DAILY_GOAL,
+        CURRENT_PAGE_KEY: "Dashboard",
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+def render_nav() -> str:
+    """
+    Render a horizontal nav bar using styled st.columns buttons.
+    Returns the name of the currently active page.
+    """
+    cols = st.columns(len(PAGES))
+    for col, name in zip(cols, PAGES):
+        icon = PAGE_ICONS[name]
+        is_active = st.session_state[CURRENT_PAGE_KEY] == name
+        label = f"**{icon} {name}**" if is_active else f"{icon} {name}"
+        if col.button(label, key=f"nav_{name}", use_container_width=True):
+            st.session_state[CURRENT_PAGE_KEY] = name
+            st.rerun()
+
+    st.markdown(
+        """
+        <style>
+        /* Active nav button gets an underline accent */
+        div[data-testid="stHorizontalBlock"] button p strong {
+            color: #185FA5;
+        }
+        div[data-testid="stHorizontalBlock"] button:has(p strong) {
+            border-bottom: 2px solid #185FA5 !important;
+            border-radius: 0 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    return st.session_state[CURRENT_PAGE_KEY]
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title="CareerOps",
+        page_icon="📋",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    inject_css()
+    init_session_state()
+
+    render_header(
+        daily_done=st.session_state[DAILY_APPLICATIONS_DONE_KEY],
+        daily_goal=st.session_state[DAILY_GOAL_KEY],
     )
 
-if DAILY_APPLICATIONS_DONE_KEY not in st.session_state:
-    st.session_state[DAILY_APPLICATIONS_DONE_KEY] = DAILY_APPLICATIONS_DONE
-render_header(daily_goal=DAILY_GOAL_APPLICATIONS)
-PAGES[page]()
+    render_nav()
+    st.divider()
+
+    current_page = st.session_state[CURRENT_PAGE_KEY]
+    page_fn = PAGES.get(current_page, render_dashboard)
+    page_fn()
+
+
+if __name__ == "__main__":
+    main()

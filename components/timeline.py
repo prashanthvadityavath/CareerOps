@@ -1,30 +1,42 @@
-"""Activity timeline components."""
+"""Activity timeline component."""
 import streamlit as st
 
-EVENT_ICONS = {
-    "resume_generated": "📄",
-    "application_submitted": "📤",
-    "interview_update": "📅",
-    "status_changed": "🔄",
+# Maps event type to a small colored dot style instead of emoji
+_EVENT_COLOR = {
+    "resume_generated":      "#185FA5",
+    "application_submitted": "#1D9E75",
+    "interview_update":      "#BA7517",
+    "status_changed":        "rgba(128,128,128,0.6)",
 }
 
 
-def render_timeline_item(event_type: str, label: str, timestamp: str, key_suffix: str = ""):
-    icon = EVENT_ICONS.get(event_type, "•")
+def render_timeline_item(
+    event_type: str,
+    label: str,
+    timestamp: str,
+    key_suffix: str = "",
+) -> None:
+    color = _EVENT_COLOR.get(event_type, "rgba(128,128,128,0.4)")
     st.markdown(
         f"""
         <div style="
             display: flex;
             align-items: flex-start;
+            gap: 10px;
             margin-bottom: 14px;
-            padding-left: 8px;
-            border-left: 2px solid #e8eaed;
-            margin-left: 8px;
+            padding-left: 4px;
         ">
-            <span style="font-size: 1rem; margin-right: 10px;">{icon}</span>
+            <div style="
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: {color};
+                margin-top: 5px;
+                flex-shrink: 0;
+            "></div>
             <div>
-                <div style="font-size: 0.9rem; color: #1a1a2e;">{label}</div>
-                <div style="font-size: 0.75rem; color: #5f6368;">{timestamp}</div>
+                <p style="font-size:13px; margin:0 0 2px; line-height:1.4;">{label}</p>
+                <p style="font-size:11px; opacity:0.45; margin:0;">{timestamp}</p>
             </div>
         </div>
         """,
@@ -32,8 +44,14 @@ def render_timeline_item(event_type: str, label: str, timestamp: str, key_suffix
     )
 
 
-def render_activity_timeline(events: list, key_suffix: str = ""):
-    """Render full vertical timeline from list of dicts with type, label, timestamp."""
+def render_activity_timeline(events: list, key_suffix: str = "") -> None:
+    """Render a vertical timeline from a list of event dicts."""
+    if not events:
+        st.markdown(
+            "<p style='font-size:13px; opacity:0.45;'>No recent activity.</p>",
+            unsafe_allow_html=True,
+        )
+        return
     for i, ev in enumerate(events):
         render_timeline_item(
             ev.get("type", ""),

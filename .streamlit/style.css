@@ -1,51 +1,71 @@
-/* CareerOps – executive SaaS style */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 html, body, [class*="css"] {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
-/* Card-style containers */
-.stMetric {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    padding: 1rem 1.25rem;
-    border: 1px solid #e8eaed;
+/* ── Hide Streamlit chrome ───────────────────────────────────── */
+#MainMenu, footer, header { visibility: hidden; }
+[data-testid="stSidebarNav"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+[data-testid="stSidebar"] { display: none !important; }
+
+/* ── Page entry animation ────────────────────────────────────── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+[data-testid="stMainBlockContainer"] {
+    animation: fadeUp 0.35s ease forwards;
+    padding-top: 0 !important;
 }
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: #fafbfc;
-    border-right: 1px solid #e8eaed;
-}
-[data-testid="stSidebar"] .stMarkdown {
-    font-weight: 500;
+/* ── Remove top padding so header sits flush ─────────────────── */
+.block-container {
+    padding-top: 0 !important;
+    padding-bottom: 2rem !important;
 }
 
-/* Main block containers – soft shadow */
-div[data-testid="stVerticalBlock"] > div {
-    border-radius: 12px;
-}
-
-/* Buttons */
+/* ── Buttons: clean, no shadow ───────────────────────────────── */
 .stButton > button {
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 500;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    border: 1px solid rgba(128,128,128,0.25) !important;
+    background: transparent !important;
+    transition: background 0.15s ease;
 }
 .stButton > button:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    background: rgba(128,128,128,0.07) !important;
 }
 
-/* Headers */
-h1, h2, h3 {
-    color: #1a1a2e;
-    font-weight: 600;
-}
-
-/* Expanders / sections */
+/* ── Expanders ───────────────────────────────────────────────── */
 .streamlit-expanderHeader {
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+/* ── Kanban cards ────────────────────────────────────────────── */
+.kanban-card {
+    border: 1px solid rgba(128,128,128,0.18);
     border-radius: 8px;
-    background: #f5f6f8;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    transition: border-color 0.15s ease;
+}
+.kanban-card:hover {
+    border-color: rgba(128,128,128,0.35);
+}
+
+/* ── KPI metric cards ────────────────────────────────────────── */
+.kpi-card {
+    border: 1px solid rgba(128,128,128,0.18);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.15s ease;
+}
+.kpi-card:hover {
+    border-color: rgba(128,128,128,0.35);
 }
