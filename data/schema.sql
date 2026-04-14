@@ -2,7 +2,7 @@
 -- Matches tables used in pages/master_profile.py
 
 -- 1. Candidate Table
-CREATE TABLE candidate (
+CREATE TABLE IF NOT EXISTS candidate (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -16,8 +16,11 @@ CREATE TABLE candidate (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Safely add profile_name if it was missed earlier
+ALTER TABLE candidate ADD COLUMN IF NOT EXISTS profile_name VARCHAR(255) DEFAULT 'Default Profile';
+
 -- 2. Technical Skills Table
-CREATE TABLE technical_skills (
+CREATE TABLE IF NOT EXISTS technical_skills (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
     category VARCHAR(100) NOT NULL, -- e.g., 'Backend Technologies & Frameworks'
@@ -25,7 +28,7 @@ CREATE TABLE technical_skills (
 );
 
 -- 3. Work Experience Table
-CREATE TABLE work_experience (
+CREATE TABLE IF NOT EXISTS work_experience (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
     company_name VARCHAR(255) NOT NULL,
@@ -40,7 +43,7 @@ CREATE TABLE work_experience (
 );
 
 -- 4. Education Table
-CREATE TABLE education (
+CREATE TABLE IF NOT EXISTS education (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
     degree VARCHAR(255) NOT NULL,
@@ -51,8 +54,8 @@ CREATE TABLE education (
     end_year INTEGER
 );
 
--- 5. Projects Table (Optional)
-CREATE TABLE projects (
+-- 5. Projects Table
+CREATE TABLE IF NOT EXISTS projects (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
     project_name VARCHAR(255) NOT NULL,
@@ -63,8 +66,8 @@ CREATE TABLE projects (
     end_date DATE
 );
 
--- 6. Certifications Table (Optional)
-CREATE TABLE certifications (
+-- 6. Certifications Table
+CREATE TABLE IF NOT EXISTS certifications (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
     certificate_name VARCHAR(255) NOT NULL,
@@ -72,4 +75,25 @@ CREATE TABLE certifications (
     issue_date DATE,
     expiration_date DATE,
     credential_url VARCHAR(255)
+);
+
+-- 7. Applications Tracking Table (ATS) - NEW
+CREATE TABLE IF NOT EXISTS applications (
+    id SERIAL PRIMARY KEY,
+    candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
+    company VARCHAR(255) NOT NULL,
+    role VARCHAR(255) NOT NULL,
+    resume_tag VARCHAR(100),
+    match_score INTEGER,
+    date_applied DATE,
+    column_id VARCHAR(50) DEFAULT 'applied'
+);
+
+-- 8. Activity Timeline Table - NEW
+CREATE TABLE IF NOT EXISTS activity_events (
+    id SERIAL PRIMARY KEY,
+    candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    timestamp VARCHAR(50),
+    color VARCHAR(20) DEFAULT 'blue'
 );
