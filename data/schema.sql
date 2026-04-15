@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS candidate (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     phone VARCHAR(50),
     linkedin_url VARCHAR(255),
     github_url VARCHAR(255),
@@ -21,6 +21,9 @@ ALTER TABLE candidate ADD COLUMN IF NOT EXISTS profile_name VARCHAR(255) DEFAULT
 
 -- Safely add daily_goal to candidate table
 ALTER TABLE candidate ADD COLUMN IF NOT EXISTS daily_goal INTEGER DEFAULT 5;
+
+-- Safely ensure email is unique if the table already exists
+CREATE UNIQUE INDEX IF NOT EXISTS candidate_email_unique_idx ON candidate (email);
 
 -- 2. Technical Skills Table
 CREATE TABLE IF NOT EXISTS technical_skills (
