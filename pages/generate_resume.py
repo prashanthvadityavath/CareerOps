@@ -2,6 +2,8 @@
 import streamlit as st
 import json
 import random
+import requests
+from bs4 import BeautifulSoup
 from data.db_utils import get_full_candidate_profile
 from intelligence.resume_builder import build_default_resume_text
 
@@ -24,6 +26,36 @@ def _analyze_job():
         "score": random.randint(70, 95),
         "keywords": skills[:8] if skills else ["Communication", "Problem Solving", "Leadership"]
     }
+
+def _fetch_job_from_url():
+    url = st.session_state.get("job_url_input", "").strip()
+    if not url:
+        st.toast("Please enter a Job URL first.", icon="⚠️")
+        return
+        
+    try:
+        # Basic headers to bypass simple bot protections
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Remove irrelevant elements like scripts, styles, navs
+        for element in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+            element.extract()
+            
+        # Extract text and clean up excess whitespace
+        text = soup.get_text(separator="\n")
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        cleaned_text = "\n".join(lines)
+        
+        st.session_state["job_desc_input"] = cleaned_text
+        st.toast("Job description fetched!", icon="✅")
+    except Exception as e:
+        st.toast(f"Failed to fetch URL: {str(e)[:50]}", icon="❌")
 
 def render_generate_resume() -> None:
 
@@ -50,12 +82,17 @@ def render_generate_resume() -> None:
             "<p style='font-size:13px; font-weight:500; margin-bottom:6px;'>Job URL</p>",
             unsafe_allow_html=True,
         )
-        st.text_input(
-            "Job URL",
-            placeholder="https://...",
-            label_visibility="collapsed",
-            key="job_url_input",
-        )
+    
+        url_col, btn_col = st.columns([3, 1])
+        with url_col:
+            st.text_input(
+                "Job URL",
+                placeholder="https://...",
+                label_visibility="collapsed",
+                key="job_url_input",
+            )
+        with btn_col:
+            st.button("Fetch", on_click=_fetch_job_from_url, use_container_width=True)
 
         st.markdown(
             "<p style='font-size:12px; opacity:0.4; text-align:center; margin:6px 0;'>or paste job description below</p>",
