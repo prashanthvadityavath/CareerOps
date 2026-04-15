@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from data.db_utils import get_full_candidate_profile
 from intelligence.resume_builder import build_default_resume_text
+from intelligence.llm_matcher import analyze_job_match
 
 
 def _analyze_job():
@@ -14,18 +15,20 @@ def _analyze_job():
         st.toast("Select a candidate to analyze fit.", icon="⚠️")
         return
     
+    job_desc = st.session_state.get("job_desc_input", "").strip()
+    if not job_desc:
+        st.toast("Please fetch or paste a job description first.", icon="⚠️")
+        return
+
     profile = get_full_candidate_profile(active_id)
-    skills = []
-    if profile and profile.get('skills'):
-        for s in profile['skills']:
-            val = s['skills_list']
-            sl = val if isinstance(val, list) else json.loads(val)
-            skills.extend(sl)
-            
-    st.session_state["job_analysis"] = {
-        "score": random.randint(70, 95),
-        "keywords": skills[:8] if skills else ["Communication", "Problem Solving", "Leadership"]
-    }
+    profile_text = build_default_resume_text(profile)
+
+    try:
+        analysis = analyze_job_match(profile_text, job_desc)
+        st.session_state["job_analysis"] = analysis
+        st.toast("AI Analysis complete!", icon="✅")
+    except Exception as e:
+        st.toast(f"AI Analysis failed: {str(e)[:50]}", icon="❌")
 
 def _fetch_job_from_url():
     url = st.session_state.get("job_url_input", "").strip()
@@ -115,24 +118,31 @@ def render_generate_resume() -> None:
         )
 
         # Keywords
+        analysis = st.session_state.get("job_analysis", {})
+        score = analysis.get("score", 0)
+        matching = analysis.get("matching_keywords", [])
+        missing = analysis.get("missing_keywords", [])
+        checklist = analysis.get("checklist", {})
+        rec = analysis.get("recommendation", "")
+
         st.markdown(
-            "<p style='font-size:13px; font-weight:500; margin-bottom:10px;'>Extracted keywords</p>",
+            "<p style='font-size:13px; font-weight:500; margin-bottom:10px;'>Keyword Analysis</p>",
             unsafe_allow_html=True,
         )
-        analysis = st.session_state.get("job_analysis", {"score": 0, "keywords": []})
-        kw_list = analysis["keywords"] if analysis["keywords"] else ["Click Analyze above..."]
-        keyword_pills = "".join([
-            f"""<span style="
-                display:inline-block;
-                font-size:11px;
-                padding:3px 10px;
-                border-radius:12px;
-                border:1px solid rgba(128,128,128,0.2);
-                margin:0 4px 6px 0;
-                opacity:0.75;
-            ">{kw}</span>"""
-            for kw in kw_list
-        ])
+        
+        if not matching and not missing:
+            keyword_pills = "<p style='font-size:12px; opacity:0.6;'>Click Analyze above to extract keywords...</p>"
+        else:
+            match_pills = "".join([
+                f"""<span style="display:inline-block; font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid #1D9E75; background:rgba(29, 158, 117, 0.1); color:#1D9E75; margin:0 4px 6px 0;">✓ {kw}</span>"""
+                for kw in matching
+            ])
+            miss_pills = "".join([
+                f"""<span style="display:inline-block; font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid rgba(128,128,128,0.3); color:rgba(128,128,128,0.8); margin:0 4px 6px 0;">✗ {kw}</span>"""
+                for kw in missing
+            ])
+            keyword_pills = match_pills + miss_pills
+
         st.markdown(
             f"<div style='line-height:2;'>{keyword_pills}</div>",
             unsafe_allow_html=True,
@@ -148,7 +158,6 @@ def render_generate_resume() -> None:
             "<p style='font-size:13px; font-weight:500; margin-bottom:8px;'>Match score</p>",
             unsafe_allow_html=True,
         )
-        score = analysis["score"]
         score_color = "#1D9E75" if score >= 80 else "#BA7517" if score >= 60 else "rgba(128,128,128,0.6)"
         st.markdown(
             f"""
@@ -176,12 +185,31 @@ def render_generate_resume() -> None:
                     {score}%
                 </span>
             </div>
-            <p style="font-size:11px; opacity:0.4; margin:6px 0 0;">
-                Mock score — connect backend to calculate live
-            </p>
             """,
             unsafe_allow_html=True,
         )
+        
+        if rec:
+            st.markdown(f"<p style='font-size:12px; font-weight:500; margin:8px 0 0;'>💡 {rec}</p>", unsafe_allow_html=True)
+        else:
+            st.markdown("<p style='font-size:11px; opacity:0.4; margin:6px 0 0;'>Connect backend to calculate live</p>", unsafe_allow_html=True)
+
+        # Checklist
+        if checklist:
+            st.markdown("<div style='height:1px; background:rgba(128,128,128,0.12); margin:1.25rem 0;'></div>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size:13px; font-weight:500; margin-bottom:10px;'>Quick Requirements</p>", unsafe_allow_html=True)
+            
+            def _bool_icon(val):
+                if isinstance(val, bool):
+                    return "✅ Yes" if val else "❌ No"
+                return str(val)
+            
+            items_html = ""
+            for key, val in checklist.items():
+                label = key.replace('_', ' ').capitalize()
+                items_html += f"<li style='font-size:12px; margin-bottom:4px;'><span style='opacity:0.7;'>{label}:</span> <strong>{_bool_icon(val)}</strong></li>"
+            
+            st.markdown(f"<ul style='margin:0; padding-left:18px;'>{items_html}</ul>", unsafe_allow_html=True)
 
     # ── Right: resume editor ─────────────────────────────────────
     with right:

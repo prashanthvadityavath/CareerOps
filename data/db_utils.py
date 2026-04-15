@@ -90,8 +90,7 @@ def run_query(
             cur.execute(query, params)
             if fetch_results:
                 results = [dict(row) for row in cur.fetchall()]
-                conn.commit()  # <-- ADDED: Clear read cache to prevent stale data
-                return results
+                return results  # No commit needed for a read-only SELECT
             else:
                 conn.commit()
                 return []
