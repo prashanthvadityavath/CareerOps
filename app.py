@@ -39,14 +39,22 @@ PAGE_ICONS = {
 
 def init_session_state() -> None:
     """Initialize all required session state variables with safe defaults."""
+    default_page = "Dashboard"
+    if "page" in st.query_params and st.query_params["page"] in PAGES:
+        default_page = st.query_params["page"]
+
     defaults = {
         DAILY_APPLICATIONS_DONE_KEY: 0,   # no longer seeded from mock_data
         DAILY_GOAL_KEY: DEFAULT_DAILY_GOAL,
-        CURRENT_PAGE_KEY: "Dashboard",
+        CURRENT_PAGE_KEY: default_page,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    # Keep URL in sync on first load if it was missing
+    if st.query_params.get("page") != st.session_state[CURRENT_PAGE_KEY]:
+        st.query_params["page"] = st.session_state[CURRENT_PAGE_KEY]
 
 
 def render_nav() -> str:
@@ -61,6 +69,7 @@ def render_nav() -> str:
         label = f"**{icon} {name}**" if is_active else f"{icon} {name}"
         if col.button(label, key=f"nav_{name}", use_container_width=True):
             st.session_state[CURRENT_PAGE_KEY] = name
+            st.query_params["page"] = name
             st.rerun()
 
     st.markdown(

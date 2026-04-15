@@ -204,28 +204,52 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
             name = c['full_name'] or f"Profile {c['id']}"
             cand_options[name] = c['id']
             cand_goals[c['id']] = c.get('daily_goal') or 5
-    else:
-        cand_options["No Candidates Found"] = None
+
+    cand_options["Create new candidate"] = None
 
     st.session_state["_cand_options_map"] = cand_options
 
     def _update_active_profile():
         selected = st.session_state.get("header_profile")
         mapping = st.session_state.get("_cand_options_map", {})
-        if selected and mapping.get(selected) is not None:
-            st.session_state["active_candidate_id"] = mapping[selected]
+        if selected in mapping:
+            cid = mapping[selected]
+            st.session_state["active_candidate_id"] = cid
             st.session_state["active_candidate_name"] = selected
+            if cid is not None:
+                st.query_params["candidate_id"] = str(cid)
+            else:
+                if "candidate_id" in st.query_params:
+                    del st.query_params["candidate_id"]
+                st.session_state[CURRENT_PAGE_KEY] = "Master Profile"
+                st.query_params["page"] = "Master Profile"
+
+    # Check query params for initial load persistence (like a hard refresh)
+    if "candidate_id" in st.query_params and "active_candidate_id" not in st.session_state:
+        try:
+            param_id = int(st.query_params["candidate_id"])
+            if any(c["id"] == param_id for c in candidates):
+                st.session_state["active_candidate_id"] = param_id
+        except ValueError:
+            pass
 
     # 2. Determine active selection
     current_id = st.session_state.get("active_candidate_id")
-    current_name = next((name for name, cid in cand_options.items() if cid == current_id), None)
     
-    if not current_name and candidates:
-         current_name = list(cand_options.keys())[0]
-         st.session_state["active_candidate_id"] = cand_options[current_name]
-         st.session_state["active_candidate_name"] = current_name
-         
-    default_idx = list(cand_options.keys()).index(current_name) if current_name else 0
+    if "active_candidate_id" not in st.session_state:
+        if candidates:
+            current_id = candidates[0]['id']
+            st.session_state["active_candidate_id"] = current_id
+            st.query_params["candidate_id"] = str(current_id)
+        else:
+            st.session_state["active_candidate_id"] = None
+            current_id = None
+
+    current_name = next((name for name, cid in cand_options.items() if cid == current_id), "Create new candidate")
+    
+    # Force sync widget state
+    if st.session_state.get("header_profile") != current_name:
+        st.session_state["header_profile"] = current_name
 
     # 3. Update goal based on active candidate
     current_id = st.session_state.get("active_candidate_id")
@@ -266,7 +290,6 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
         st.selectbox(
             "Active Profile",
             options=list(cand_options.keys()),
-            index=default_idx,
             label_visibility="collapsed",
             key="header_profile",
             on_change=_update_active_profile

@@ -607,16 +607,35 @@ def render_master_profile() -> None:
         name = p["full_name"] or f"Unnamed (ID {p['id']})"
         profile_options[name] = p["id"]
 
-    selected_option      = st.selectbox(
+    st.session_state["_mp_options_map"] = profile_options
+
+    def _update_mp_profile():
+        selected = st.session_state.get("mp_profile_select")
+        mapping = st.session_state.get("_mp_options_map", {})
+        if selected in mapping:
+            cid = mapping[selected]
+            st.session_state["active_candidate_id"] = cid
+            st.session_state["active_candidate_name"] = selected
+            if cid is not None:
+                st.query_params["candidate_id"] = str(cid)
+            else:
+                if "candidate_id" in st.query_params:
+                    del st.query_params["candidate_id"]
+
+    active_id = st.session_state.get("active_candidate_id")
+    
+    target_name = next((name for name, cid in profile_options.items() if cid == active_id), "Create new candidate")
+    if st.session_state.get("mp_profile_select") != target_name:
+        st.session_state["mp_profile_select"] = target_name
+
+    selected_option = st.selectbox(
         "Candidate",
         list(profile_options.keys()),
         label_visibility="collapsed",
+        key="mp_profile_select",
+        on_change=_update_mp_profile
     )
     selected_candidate_id = profile_options[selected_option]
-
-    # Store active candidate name in session for the header avatar
-    if selected_candidate_id:
-        st.session_state["active_candidate_name"] = selected_option
 
     _divider()
 
