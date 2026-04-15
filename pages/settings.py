@@ -55,7 +55,14 @@ def render_settings() -> None:
     # ── Daily goal ───────────────────────────────────────────────
     _section_header("Daily application goal", "Sets the target shown in the header progress bar.")
 
+    active_id = st.session_state.get("active_candidate_id")
     current_goal = st.session_state.get(DAILY_GOAL_KEY, DEFAULT_DAILY_GOAL)
+    
+    if active_id:
+        res = run_query("SELECT daily_goal FROM candidate WHERE id = %s", (active_id,))
+        if res and res[0].get("daily_goal"):
+            current_goal = res[0]["daily_goal"]
+
     new_goal = st.number_input(
         "Target applications per day",
         min_value=1,
@@ -66,10 +73,10 @@ def render_settings() -> None:
     )
     c1, c2 = st.columns([1, 4])
     with c1:
-        if st.button("Save goal", use_container_width=True):
+        if st.button("Save goal", use_container_width=True, disabled=not active_id):
+            run_query("UPDATE candidate SET daily_goal = %s WHERE id = %s", (new_goal, active_id), fetch_results=False)
             st.session_state[DAILY_GOAL_KEY] = new_goal
-            st.success(f"Daily goal updated to {new_goal}.")
-            st.rerun()
+            st.toast(f"Goal saved: {new_goal}!", icon="✅")
 
     _divider()
 

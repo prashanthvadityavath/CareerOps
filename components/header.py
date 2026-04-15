@@ -168,6 +168,19 @@ def inject_css() -> None:
     .co-page {
         padding: 0 1.5rem;
     }
+
+    /* ── Profile Selectbox refinements ───────────────────────── */
+    /* Hide the blinking text cursor so it feels like a standard dropdown */
+    div[data-testid="stSelectbox"] input {
+        caret-color: transparent !important;
+        cursor: pointer !important;
+    }
+    /* Tighter dimensions to fit nicely in the header */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        min-height: 34px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
     """
 
     st.markdown(
@@ -180,18 +193,28 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
     """
     Render the sticky top header bar.
     """
-    pct = min(int((daily_done / daily_goal) * 100), 100) if daily_goal > 0 else 0
-    goal_color = "#1D9E75" if pct >= 100 else "#185FA5" if pct >= 50 else "#BA7517"
 
     # 1. Fetch Candidates from Database
-    candidates = run_query("SELECT id, full_name FROM candidate ORDER BY id")
+    candidates = run_query("SELECT id, full_name, daily_goal FROM candidate ORDER BY id")
     
     cand_options = {}
+    cand_goals = {}
     if candidates:
         for c in candidates:
-            cand_options[c['full_name'] or f"Profile {c['id']}"] = c['id']
+            name = c['full_name'] or f"Profile {c['id']}"
+            cand_options[name] = c['id']
+            cand_goals[c['id']] = c.get('daily_goal') or 5
     else:
         cand_options["No Candidates Found"] = None
+
+    st.session_state["_cand_options_map"] = cand_options
+
+    def _update_active_profile():
+        selected = st.session_state.get("header_profile")
+        mapping = st.session_state.get("_cand_options_map", {})
+        if selected and mapping.get(selected) is not None:
+            st.session_state["active_candidate_id"] = mapping[selected]
+            st.session_state["active_candidate_name"] = selected
 
     # 2. Determine active selection
     current_id = st.session_state.get("active_candidate_id")
@@ -200,8 +223,17 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
     if not current_name and candidates:
          current_name = list(cand_options.keys())[0]
          st.session_state["active_candidate_id"] = cand_options[current_name]
+         st.session_state["active_candidate_name"] = current_name
          
     default_idx = list(cand_options.keys()).index(current_name) if current_name else 0
+
+    # 3. Update goal based on active candidate
+    current_id = st.session_state.get("active_candidate_id")
+    active_goal = cand_goals.get(current_id, daily_goal)
+    st.session_state[DAILY_GOAL_KEY] = active_goal
+
+    pct = min(int((daily_done / active_goal) * 100), 100) if active_goal > 0 else 0
+    goal_color = "#1D9E75" if pct >= 100 else "#185FA5" if pct >= 50 else "#BA7517"
 
     st.markdown(
         f"""
@@ -211,7 +243,7 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
                 CareerOps
             </div>
             <div class="co-goal-pill">
-                <span>{daily_done}/{daily_goal} today</span>
+                <span>{daily_done}/{active_goal} today</span>
                 <div class="co-goal-bar-track">
                     <div class="co-goal-bar-fill" style="width:{pct}%; background:{goal_color};"></div>
                 </div>
@@ -231,17 +263,11 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
     with right_col:
         # Add negative margin to pull it up into the header space visually
         st.markdown("<div style='margin-top: -45px;'></div>", unsafe_allow_html=True)
-        selected_profile = st.selectbox(
+        st.selectbox(
             "Active Profile",
             options=list(cand_options.keys()),
             index=default_idx,
             label_visibility="collapsed",
-            key="header_profile"
+            key="header_profile",
+            on_change=_update_active_profile
         )
-
-        if cand_options.get(selected_profile) is not None:
-            new_id = cand_options[selected_profile]
-            if new_id != st.session_state.get("active_candidate_id"):
-                st.session_state["active_candidate_id"] = new_id
-                st.session_state["active_candidate_name"] = selected_profile
-                st.rerun()

@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS candidate (
 -- Safely add profile_name if it was missed earlier
 ALTER TABLE candidate ADD COLUMN IF NOT EXISTS profile_name VARCHAR(255) DEFAULT 'Default Profile';
 
+-- Safely add daily_goal to candidate table
+ALTER TABLE candidate ADD COLUMN IF NOT EXISTS daily_goal INTEGER DEFAULT 5;
+
 -- 2. Technical Skills Table
 CREATE TABLE IF NOT EXISTS technical_skills (
     id SERIAL PRIMARY KEY,
