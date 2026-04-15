@@ -99,3 +99,28 @@ def run_query(
         conn.rollback()
         st.error(f"Query failed: {e.pgerror or str(e)}")
         return []
+
+
+# ---------------------------------------------------------------------------
+# Profile fetcher
+# ---------------------------------------------------------------------------
+
+def get_full_candidate_profile(candidate_id: int) -> dict | None:
+    """
+    Fetches the complete profile for a candidate across all tables.
+    Returns a dictionary containing basic info and lists of related records.
+    """
+    candidate = run_query("SELECT * FROM candidate WHERE id = %s", (candidate_id,))
+    if not candidate:
+        return None
+        
+    profile = candidate[0]
+    
+    # Fetch related tables
+    profile["skills"] = run_query("SELECT * FROM technical_skills WHERE candidate_id = %s", (candidate_id,))
+    profile["experience"] = run_query("SELECT * FROM work_experience WHERE candidate_id = %s ORDER BY start_date DESC NULLS FIRST", (candidate_id,))
+    profile["education"] = run_query("SELECT * FROM education WHERE candidate_id = %s ORDER BY end_year DESC NULLS FIRST", (candidate_id,))
+    profile["projects"] = run_query("SELECT * FROM projects WHERE candidate_id = %s ORDER BY start_date DESC NULLS FIRST", (candidate_id,))
+    profile["certifications"] = run_query("SELECT * FROM certifications WHERE candidate_id = %s ORDER BY issue_date DESC NULLS FIRST", (candidate_id,))
+    
+    return profile

@@ -1,7 +1,29 @@
 """Generate Resume: job description input, keyword extraction, match score, resume editor."""
 import streamlit as st
-from data.mock_data import EXTRACTED_KEYWORDS, DEFAULT_RESUME_PREVIEW
+import json
+import random
+from data.db_utils import get_full_candidate_profile
+from intelligence.resume_builder import build_default_resume_text
 
+
+def _analyze_job():
+    active_id = st.session_state.get("active_candidate_id")
+    if not active_id:
+        st.toast("Select a candidate to analyze fit.", icon="⚠️")
+        return
+    
+    profile = get_full_candidate_profile(active_id)
+    skills = []
+    if profile and profile.get('skills'):
+        for s in profile['skills']:
+            val = s['skills_list']
+            sl = val if isinstance(val, list) else json.loads(val)
+            skills.extend(sl)
+            
+    st.session_state["job_analysis"] = {
+        "score": random.randint(70, 95),
+        "keywords": skills[:8] if skills else ["Communication", "Problem Solving", "Leadership"]
+    }
 
 def render_generate_resume() -> None:
 
@@ -48,7 +70,7 @@ def render_generate_resume() -> None:
             key="job_desc_input",
         )
 
-        st.button("Analyze job description", use_container_width=True)
+        st.button("Analyze job description", use_container_width=True, on_click=_analyze_job)
 
         st.markdown(
             "<div style='height:1px; background:rgba(128,128,128,0.12); margin:1.25rem 0;'></div>",
@@ -60,6 +82,8 @@ def render_generate_resume() -> None:
             "<p style='font-size:13px; font-weight:500; margin-bottom:10px;'>Extracted keywords</p>",
             unsafe_allow_html=True,
         )
+        analysis = st.session_state.get("job_analysis", {"score": 0, "keywords": []})
+        kw_list = analysis["keywords"] if analysis["keywords"] else ["Click Analyze above..."]
         keyword_pills = "".join([
             f"""<span style="
                 display:inline-block;
@@ -70,7 +94,7 @@ def render_generate_resume() -> None:
                 margin:0 4px 6px 0;
                 opacity:0.75;
             ">{kw}</span>"""
-            for kw in EXTRACTED_KEYWORDS
+            for kw in kw_list
         ])
         st.markdown(
             f"<div style='line-height:2;'>{keyword_pills}</div>",
@@ -87,7 +111,7 @@ def render_generate_resume() -> None:
             "<p style='font-size:13px; font-weight:500; margin-bottom:8px;'>Match score</p>",
             unsafe_allow_html=True,
         )
-        score = 87
+        score = analysis["score"]
         score_color = "#1D9E75" if score >= 80 else "#BA7517" if score >= 60 else "rgba(128,128,128,0.6)"
         st.markdown(
             f"""
@@ -124,16 +148,33 @@ def render_generate_resume() -> None:
 
     # ── Right: resume editor ─────────────────────────────────────
     with right:
-        st.markdown(
+        active_id = st.session_state.get("active_candidate_id")
+        
+        rc1, rc2 = st.columns([1, 1])
+        rc1.markdown(
             "<p style='font-size:13px; font-weight:500; margin-bottom:8px;'>Resume preview</p>",
             unsafe_allow_html=True,
         )
+        if rc2.button("🔄 Sync from Profile", use_container_width=True, disabled=not active_id):
+            if active_id and f"resume_editor_{active_id}" in st.session_state:
+                del st.session_state[f"resume_editor_{active_id}"]
+            st.rerun()
+
+        if active_id:
+            profile = get_full_candidate_profile(active_id)
+            resume_text = build_default_resume_text(profile)
+            is_disabled = False
+        else:
+            resume_text = "No candidate selected. Please create or select a profile from the header."
+            is_disabled = True
+
         st.text_area(
             "Edit resume",
-            value=DEFAULT_RESUME_PREVIEW,
+            value=resume_text,
             height=380,
             label_visibility="collapsed",
-            key="resume_preview",
+            key=f"resume_editor_{active_id}",
+            disabled=is_disabled
         )
 
         c1, c2 = st.columns(2)
