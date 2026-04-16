@@ -1,7 +1,5 @@
 """Generate Resume: job description input, keyword extraction, match score, resume editor."""
 import streamlit as st
-import json
-import random
 import requests
 from bs4 import BeautifulSoup
 from data.db_utils import get_full_candidate_profile
@@ -19,14 +17,15 @@ def _analyze_job():
     if not job_desc:
         st.toast("Please fetch or paste a job description first.", icon="⚠️")
         return
-
+    
+    model_provider = st.session_state.get("model_provider_select", "Gemini")
     profile = get_full_candidate_profile(active_id)
     profile_text = build_default_resume_text(profile)
 
     try:
-        analysis = analyze_job_match(profile_text, job_desc)
+        analysis = analyze_job_match(profile_text, job_desc, model_provider=model_provider)
         st.session_state["job_analysis"] = analysis
-        st.toast("AI Analysis complete!", icon="✅")
+        st.toast(f"AI Analysis complete using {model_provider}!", icon="✅")
     except Exception as e:
         st.toast(f"AI Analysis failed: {str(e)[:50]}", icon="❌")
 
@@ -108,6 +107,13 @@ def render_generate_resume() -> None:
             placeholder="Paste the full job description here...",
             label_visibility="collapsed",
             key="job_desc_input",
+        )
+
+        st.selectbox(
+            "Select AI Model",
+            options=["Gemini", "Grok", "Qwen"],
+            key="model_provider_select",
+            help="Choose the AI model for analysis. Requires the corresponding API key in your secrets.",
         )
 
         st.button("Analyze job description", use_container_width=True, on_click=_analyze_job)
