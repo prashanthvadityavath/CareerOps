@@ -1,10 +1,12 @@
 """Generate Resume: job description input, keyword extraction, match score, resume editor."""
+import json
+import os
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from data.db_utils import get_full_candidate_profile
 from intelligence.resume_builder import build_default_resume_text
-from intelligence.llm_matcher import analyze_job_match
+from intelligence.llm_matcher import analyze_job_match, MODEL_DEFAULTS
 
 
 def _analyze_job():
@@ -19,15 +21,16 @@ def _analyze_job():
         return
     
     model_provider = st.session_state.get("model_provider_select", "Gemini")
+    model_name = st.session_state.get("model_name_input", "")
     profile = get_full_candidate_profile(active_id)
     profile_text = build_default_resume_text(profile)
 
     try:
-        analysis = analyze_job_match(profile_text, job_desc, model_provider=model_provider)
+        analysis = analyze_job_match(profile_text, job_desc, model_provider=model_provider, model_name=model_name)
         st.session_state["job_analysis"] = analysis
         st.toast(f"AI Analysis complete using {model_provider}!", icon="✅")
     except Exception as e:
-        st.toast(f"AI Analysis failed: {str(e)[:50]}", icon="❌")
+        st.toast(f"AI Analysis failed: {str(e)[:100]}", icon="❌")
 
 def _fetch_job_from_url():
     url = st.session_state.get("job_url_input", "").strip()
@@ -109,12 +112,96 @@ def render_generate_resume() -> None:
             key="job_desc_input",
         )
 
-        st.selectbox(
+        model_provider = st.selectbox(
             "Select AI Model",
-            options=["Gemini", "Grok", "Qwen"],
+            options=["Gemini", "Grok", "Qwen", "OpenAI", "Ollama"],
             key="model_provider_select",
-            help="Choose the AI model for analysis. Requires the corresponding API key in your secrets.",
+            help="Choose the AI model for analysis.",
         )
+
+        default_model_name = MODEL_DEFAULTS.get(model_provider, "")
+        st.text_input(
+            "Model Name (optional)",
+            placeholder=f"Default: {default_model_name}",
+            key="model_name_input",
+            help=f"Optionally specify a model name. If left blank, '{default_model_name}' will be used."
+        )
+
+        # ── API Key Management ──
+        if model_provider == "Ollama":
+            key_name = "OLLAMA_BASE_URL"
+            input_label = "Ollama Base URL"
+            input_placeholder = "e.g., http://localhost:11434"
+            expander_label = "Ollama Configuration"
+            input_type = "default"
+        else:
+            key_name = f"{model_provider}_API_KEY".upper()
+            input_label = f"{model_provider} API Key"
+            input_placeholder = f"Enter your {model_provider} API Key here..."
+            expander_label = f"{model_provider} API Key Configuration"
+            input_type = "password"
+        
+        def get_saved_key():
+            try:
+                # For Ollama, provide a default if no key is saved
+                if model_provider == "Ollama" and not os.path.exists("user_keys.json"):
+                    return "http://localhost:11434"
+
+                if os.path.exists("user_keys.json"):
+                    with open("user_keys.json", "r") as f:
+                        return json.load(f).get(key_name, "")
+            except Exception:
+                pass
+            return ""
+
+        def save_key(val):
+            keys = {}
+            if os.path.exists("user_keys.json"):
+                try:
+                    with open("user_keys.json", "r") as f:
+                        keys = json.load(f)
+                except Exception:
+                    pass
+            if val:
+                keys[key_name] = val
+            else:
+                keys.pop(key_name, None)
+            with open("user_keys.json", "w") as f:
+                json.dump(keys, f)
+
+        current_key = get_saved_key()
+        
+        def handle_save_key():
+            val = st.session_state.get(f"input_{key_name}")
+            if val:
+                save_key(val)
+                st.session_state[key_name] = val
+                st.toast(f"{model_provider} API Key saved!", icon="✅")
+            else:
+                st.toast("Please enter a valid API key to save.", icon="⚠️")
+
+        def handle_clear_key():
+            save_key("")
+            if key_name in st.session_state:
+                del st.session_state[key_name]
+            st.session_state[f"input_{key_name}"] = ""
+            st.toast(f"{model_provider} API Key cleared!", icon="✅")
+
+        with st.expander(expander_label, expanded=not bool(current_key)):
+            st.text_input(
+                input_label,
+                value=current_key,
+                type=input_type,
+                placeholder=input_placeholder,
+                key=f"input_{key_name}"
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.button("Save Key", key=f"save_{key_name}", use_container_width=True, on_click=handle_save_key)
+            
+            with col2:
+                st.button("Clear Key", key=f"clear_{key_name}", use_container_width=True, on_click=handle_clear_key)
 
         st.button("Analyze job description", use_container_width=True, on_click=_analyze_job)
 

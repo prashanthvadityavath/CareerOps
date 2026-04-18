@@ -8,48 +8,78 @@ from dotenv import load_dotenv
 from groq import Groq
 from openai import OpenAI
 
+MODEL_DEFAULTS = {
+    "Gemini": "gemini-1.5-flash",
+    "Grok": "llama3-groq-70b-8192-tool-use-preview",
+    "Qwen": "qwen-plus",
+    "OpenAI": "gpt-4o",
+    "Ollama": "llama3",
+}
+
+def _get_provider_credential(provider: str, credential_name: str) -> str | None:
+    """
+    Helper to retrieve a credential (e.g., API_KEY, BASE_URL) from session state,
+    local JSON, secrets, or env.
+    """
+    key_name = f"{provider.upper()}_{credential_name.upper()}"
+    
+    if key_name in st.session_state and st.session_state[key_name]:
+        return st.session_state[key_name]
+    try:
+        if os.path.exists("user_keys.json"):
+            with open("user_keys.json", "r") as f:
+                keys = json.load(f)
+                if keys.get(key_name):
+                    return keys[key_name]
+    except Exception:
+        pass
+    load_dotenv()
+    try:
+        val = st.secrets.get(key_name)
+        if val:
+            return val
+    except Exception:
+        pass
+    return os.getenv(key_name)
+
 
 @st.cache_resource
-def _get_gemini_model() -> genai.GenerativeModel:
+def _get_gemini_model(api_key: str) -> genai.GenerativeModel:
     """Initializes and caches the Gemini client to avoid reconfiguring on every call."""
-    load_dotenv()
-    api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY not found in .env file or Streamlit secrets")
-
     genai.configure(api_key=api_key)
     return genai.GenerativeModel("gemini-2.5-flash")
 
 
 @st.cache_resource
-def _get_grok_client() -> Groq:
+def _get_grok_client(api_key: str) -> Groq:
     """Initializes and caches the Groq client."""
-    load_dotenv()
-    api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not found in .env file or Streamlit secrets")
     return Groq(api_key=api_key)
 
 
 @st.cache_resource
-def _get_qwen_client() -> OpenAI:
+def _get_qwen_client(api_key: str) -> OpenAI:
     """Initializes and caches the OpenAI client for Qwen (DashScope API)."""
-    load_dotenv()
-    
-    try:
-        api_key = st.secrets.get("QWEN_API_KEY")
-    except Exception:
-        api_key = None
-    api_key = api_key or os.getenv("QWEN_API_KEY")
-    if not api_key:
-        raise ValueError("QWEN_API_KEY not found in .env file or Streamlit secrets")
     return OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+
+@st.cache_resource
+def _get_openai_client(api_key: str) -> OpenAI:
+    """Initializes and caches the OpenAI client."""
+    return OpenAI(api_key=api_key)
+
+
+@st.cache_resource
+def _get_ollama_client(base_url: str) -> OpenAI:
+    """Initializes and caches an OpenAI-compatible client for Ollama."""
+    # Ollama doesn't require a key for local instances, but the client needs a value.
+    return OpenAI(api_key="ollama", base_url=base_url)
 
 
 def analyze_job_match(
     profile_text: str,
     job_description: str,
-    model_provider: str = "Gemini"
+    model_provider: str = "Gemini",
+    model_name: str | None = None,
 ) -> dict:
     """
     Uses the selected AI provider to analyze the match between a candidate profile
@@ -60,6 +90,20 @@ def analyze_job_match(
         raise ValueError("profile_text must not be empty.")
     if not job_description or not job_description.strip():
         raise ValueError("job_description must not be empty.")
+
+    # Use provided model name or get default from the config
+    active_model = model_name.strip() if model_name and model_name.strip() else MODEL_DEFAULTS.get(model_provider)
+    if not active_model:
+        raise ValueError(f"No model name provided and no default exists for {model_provider}.")
+
+    # Get credentials (API key or Base URL for Ollama)
+    if model_provider == "Ollama":
+        credential = _get_provider_credential("Ollama", "BASE_URL") or "http://localhost:11434"
+    else:
+        credential = _get_provider_credential(model_provider, "API_KEY")
+    if not credential:
+        cred_type = "Base URL" if model_provider == "Ollama" else "API Key"
+        raise ValueError(f"{cred_type} for {model_provider} is missing. Please add it in the UI.")
 
     prompt = f"""
     You are an expert ATS (Applicant Tracking System) and senior technical recruiter.
@@ -95,7 +139,7 @@ def analyze_job_match(
     raw_text = ""
     try:
         if model_provider == "Gemini":
-            model = _get_gemini_model()
+            model = _get_gemini_model(credential)
             response = model.generate_content(
                 prompt,
                 generation_config=genai.GenerationConfig(
@@ -104,20 +148,20 @@ def analyze_job_match(
                 ),
             )
             raw_text = response.text
-        elif model_provider == "Grok":
-            client = _get_grok_client()
+        elif model_provider in ["Grok", "Qwen", "OpenAI", "Ollama"]:
+            client = None
+            if model_provider == "Grok":
+                client = _get_grok_client(credential)
+            elif model_provider == "Qwen":
+                client = _get_qwen_client(credential)
+            elif model_provider == "OpenAI":
+                client = _get_openai_client(credential)
+            elif model_provider == "Ollama":
+                client = _get_ollama_client(credential)
+
             chat_completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="grok-4.20-reasoning",
-                temperature=0.0,
-                response_format={"type": "json_object"},
-            )
-            raw_text = chat_completion.choices[0].message.content
-        elif model_provider == "Qwen":
-            client = _get_qwen_client()
-            chat_completion = client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="qwen-plus",
+                model=active_model,
                 temperature=0.0,
                 response_format={"type": "json_object"},
             )
@@ -128,7 +172,7 @@ def analyze_job_match(
         result = json.loads(raw_text)
 
         # Validate the response shape before returning to avoid downstream KeyErrors
-        if "score" not in result or "matching_keywords" not in result:
+        if "score" not in result or "matching_keywords" not in result or "missing_keywords" not in result:
             raise ValueError(f"Unexpected response structure: {result}")
 
         return result
