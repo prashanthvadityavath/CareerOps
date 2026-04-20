@@ -1,5 +1,5 @@
 -- CareerOps PostgreSQL schema (run once against the database from secrets.toml)
--- Matches tables used in pages/master_profile.py
+-- CareerOps PostgreSQL schema (Fresh Install)
 
 -- 1. Candidate Table
 CREATE TABLE IF NOT EXISTS candidate (
@@ -11,26 +11,19 @@ CREATE TABLE IF NOT EXISTS candidate (
     github_url VARCHAR(255),
     portfolio_url VARCHAR(255),
     career_objective TEXT,
-    professional_summary JSONB, -- Stores array of bullet points
+    professional_summary JSONB,
+    profile_name VARCHAR(255) DEFAULT 'Default Profile',
+    daily_goal INTEGER DEFAULT 5,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Safely add profile_name if it was missed earlier
-ALTER TABLE candidate ADD COLUMN IF NOT EXISTS profile_name VARCHAR(255) DEFAULT 'Default Profile';
-
--- Safely add daily_goal to candidate table
-ALTER TABLE candidate ADD COLUMN IF NOT EXISTS daily_goal INTEGER DEFAULT 5;
-
--- Safely ensure email is unique if the table already exists
-CREATE UNIQUE INDEX IF NOT EXISTS candidate_email_unique_idx ON candidate (email);
 
 -- 2. Technical Skills Table
 CREATE TABLE IF NOT EXISTS technical_skills (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
-    category VARCHAR(100) NOT NULL, -- e.g., 'Backend Technologies & Frameworks'
-    skills_list JSONB NOT NULL -- Stores array of skills
+    category VARCHAR(100) NOT NULL,
+    skills_list JSONB NOT NULL
 );
 
 -- 3. Work Experience Table
@@ -40,12 +33,12 @@ CREATE TABLE IF NOT EXISTS work_experience (
     company_name VARCHAR(255) NOT NULL,
     role_title VARCHAR(255) NOT NULL,
     start_date DATE,
-    end_date DATE, -- NULL can represent "Present"
+    end_date DATE,
     location VARCHAR(255),
     project_name TEXT,
     project_description TEXT,
-    role_and_contributions JSONB, -- Stores array of bullet points
-    technologies_utilized JSONB -- Stores array of technologies
+    role_and_contributions JSONB,
+    technologies_utilized JSONB
 );
 
 -- 4. Education Table
@@ -83,23 +76,24 @@ CREATE TABLE IF NOT EXISTS certifications (
     credential_url VARCHAR(255)
 );
 
--- 7. Applications Tracking Table (ATS) - NEW
+-- 7. Applications Tracking Table (ATS)
 CREATE TABLE IF NOT EXISTS applications (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
     company VARCHAR(255) NOT NULL,
     role VARCHAR(255) NOT NULL,
-    resume_tag VARCHAR(100),
+    resume_tag VARCHAR(255),
     match_score INTEGER,
-    date_applied DATE,
-    column_id VARCHAR(50) DEFAULT 'applied'
+    column_id VARCHAR(50) DEFAULT 'saved',
+    date_applied DATE DEFAULT CURRENT_DATE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. Activity Timeline Table - NEW
-CREATE TABLE IF NOT EXISTS activity_events (
+-- 8. Activity Timeline Table
+CREATE TABLE IF NOT EXISTS activity_log (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    timestamp VARCHAR(50),
-    color VARCHAR(20) DEFAULT 'blue'
+    event_type VARCHAR(50),
+    label TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

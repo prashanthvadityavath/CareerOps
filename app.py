@@ -9,6 +9,7 @@ from config import (
     CURRENT_PAGE_KEY,
     DEFAULT_DAILY_GOAL,
 )
+from data.db_utils import setup_tracking_tables
 from components.header import inject_css, render_header
 from pages.dashboard import render_dashboard
 from pages.generate_resume import render_generate_resume
@@ -54,6 +55,8 @@ def init_session_state() -> None:
     # Keep URL in sync on first load if it was missing
     if st.query_params.get("page") != st.session_state[CURRENT_PAGE_KEY]:
         st.query_params["page"] = st.session_state[CURRENT_PAGE_KEY]
+
+    setup_tracking_tables()
 
 
 def render_nav() -> str:

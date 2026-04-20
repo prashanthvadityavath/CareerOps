@@ -1,6 +1,6 @@
 """Kanban card and column helpers."""
 import streamlit as st
-from config import PENDING_MOVES_KEY
+from data.db_utils import move_application, log_activity
 
 KANBAN_COLUMNS = [
     ("saved",          "Saved"),
@@ -35,10 +35,12 @@ def _on_move_callback(app_id: str, key_suffix: str) -> None:
         (cid for cid, lbl in KANBAN_COLUMNS if lbl == label), None
     )
     if target_id is not None:
-        if PENDING_MOVES_KEY not in st.session_state:
-            st.session_state[PENDING_MOVES_KEY] = []
-        st.session_state[PENDING_MOVES_KEY].append((app_id, target_id))
-    st.rerun()
+        move_application(int(app_id), target_id)
+        
+        active_id = st.session_state.get("active_candidate_id")
+        if active_id:
+            log_activity(active_id, "status_changed", f"Application moved to {label}")
+        st.rerun()
 
 
 def render_kanban_card(

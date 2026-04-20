@@ -1,9 +1,9 @@
 """Analytics: application trends, resume performance, status breakdown, activity heatmap."""
 import streamlit as st
+import pandas as pd
+from data.db_utils import get_applications
 from data.mock_data import (
     get_applications_per_week_df,
-    get_resume_version_interview_df,
-    get_status_distribution,
     get_activity_heatmap_data,
 )
 from components import (
@@ -17,6 +17,13 @@ _CHART_CFG = {"displayModeBar": False}
 
 
 def render_analytics() -> None:
+    active_id = st.session_state.get("active_candidate_id")
+    if not active_id:
+        st.info("Select a candidate to view analytics.")
+        return
+
+    applications = get_applications(active_id)
+    df = pd.DataFrame(applications)
 
     # ── Page header ──────────────────────────────────────────────
     st.markdown(
@@ -32,6 +39,22 @@ def render_analytics() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+    if df.empty:
+        st.info("No applications logged yet. Save applications in the 'Generate Resume' tab to view analytics.")
+        return
+
+    # Prepare status distribution
+    status_counts = df['column_id'].value_counts().reset_index()
+    status_counts.columns = ['status', 'count']
+    status_counts['status'] = status_counts['status'].str.replace('_', ' ').str.title()
+
+    # Prepare resume version interview rate
+    version_counts = df.groupby('resume_tag').apply(
+        lambda x: (x['column_id'] == 'interviewing').sum() / len(x) * 100
+    ).reset_index()
+    version_counts.columns = ['version', 'interview_rate']
+    version_counts['interview_rate'] = version_counts['interview_rate'].round(1)
 
     # ── Full-width: applications per week ────────────────────────
     st.plotly_chart(
@@ -49,13 +72,13 @@ def render_analytics() -> None:
     c1, c2 = st.columns(2)
     with c1:
         st.plotly_chart(
-            resume_version_interview_chart(get_resume_version_interview_df()),
+            resume_version_interview_chart(version_counts),
             use_container_width=True,
             config=_CHART_CFG,
         )
     with c2:
         st.plotly_chart(
-            status_distribution_chart(get_status_distribution()),
+            status_distribution_chart(status_counts),
             use_container_width=True,
             config=_CHART_CFG,
         )

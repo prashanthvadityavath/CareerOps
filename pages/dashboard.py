@@ -1,12 +1,7 @@
 """Dashboard: KPI summary, application pipeline, activity timeline."""
 import streamlit as st
-from config import DASHBOARD_APPLICATIONS_KEY, PENDING_MOVES_KEY
-from data.mock_data import (
-    APPLICATIONS,
-    ACTIVITY_EVENTS,
-    get_dashboard_kpis,
-    get_kpi_sparkline_data,
-)
+from data.db_utils import get_applications, get_activity_timeline
+from data.mock_data import get_kpi_sparkline_data
 from components import (
     render_kpi_card,
     render_kanban_card,
@@ -16,37 +11,23 @@ from components import (
 
 
 # ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _get_applications() -> list:
-    if DASHBOARD_APPLICATIONS_KEY not in st.session_state:
-        st.session_state[DASHBOARD_APPLICATIONS_KEY] = [
-            a.copy() for a in APPLICATIONS
-        ]
-    return st.session_state[DASHBOARD_APPLICATIONS_KEY]
-
-
-def _apply_pending_moves(applications: list) -> None:
-    pending = st.session_state.get(PENDING_MOVES_KEY, [])
-    if not pending:
-        return
-    move_map = {app_id: col for app_id, col in pending}
-    for app in applications:
-        if app["id"] in move_map:
-            app["column_id"] = move_map[app["id"]]
-    st.session_state[PENDING_MOVES_KEY] = []
-
-
-# ---------------------------------------------------------------------------
 # Page render
 # ---------------------------------------------------------------------------
 
 def render_dashboard() -> None:
-    applications = _get_applications()
-    _apply_pending_moves(applications)
+    active_id = st.session_state.get("active_candidate_id")
+    if not active_id:
+        st.info("Select a candidate to view the dashboard.")
+        return
+        
+    applications = get_applications(active_id)
+    activities = get_activity_timeline(active_id)
 
-    kpis = get_dashboard_kpis()
+    total_apps = len(applications)
+    interviews = len([a for a in applications if a['column_id'] == 'interviewing'])
+    offers = len([a for a in applications if a['column_id'] == 'offer_rejected'])
+    conversion_rate = round((offers / total_apps * 100), 1) if total_apps > 0 else 0.0
+
     spark = get_kpi_sparkline_data()
 
     # ── Page header ──────────────────────────────────────────────
@@ -69,7 +50,7 @@ def render_dashboard() -> None:
     with k1:
         render_kpi_card(
             "Total Applications",
-            kpis["total_applications"],
+            total_apps,
             "All time",
             spark["applications"],
             "apps",
@@ -77,7 +58,7 @@ def render_dashboard() -> None:
     with k2:
         render_kpi_card(
             "Interviews",
-            kpis["interviews"],
+            interviews,
             "Scheduled",
             spark["interviews"],
             "int",
@@ -85,7 +66,7 @@ def render_dashboard() -> None:
     with k3:
         render_kpi_card(
             "Offers",
-            kpis["offers"],
+            offers,
             "Received",
             spark["offers"],
             "off",
@@ -93,7 +74,7 @@ def render_dashboard() -> None:
     with k4:
         render_kpi_card(
             "Conversion Rate",
-            f"{kpis['conversion_rate']}%",
+            f"{conversion_rate}%",
             "Application to offer",
             spark["conversion"],
             "conv",
@@ -149,4 +130,4 @@ def render_dashboard() -> None:
             "<p style='font-size:14px; font-weight:600; margin-bottom:12px;'>Recent activity</p>",
             unsafe_allow_html=True,
         )
-        render_activity_timeline(ACTIVITY_EVENTS, "dash")
+        render_activity_timeline(activities, "dash")

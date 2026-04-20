@@ -1,40 +1,19 @@
 """Applications: full Kanban board for tracking job applications."""
 import streamlit as st
-from config import APPLICATIONS_PAGE_APPLICATIONS_KEY, PENDING_MOVES_KEY
-from data.mock_data import APPLICATIONS
+from data.db_utils import get_applications
 from components import render_kanban_card, KANBAN_COLUMNS
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _get_applications() -> list:
-    if APPLICATIONS_PAGE_APPLICATIONS_KEY not in st.session_state:
-        st.session_state[APPLICATIONS_PAGE_APPLICATIONS_KEY] = [
-            a.copy() for a in APPLICATIONS
-        ]
-    return st.session_state[APPLICATIONS_PAGE_APPLICATIONS_KEY]
-
-
-def _apply_pending_moves(applications: list) -> None:
-    pending = st.session_state.get(PENDING_MOVES_KEY, [])
-    if not pending:
-        return
-    move_map = {app_id: col for app_id, col in pending}
-    for app in applications:
-        if app["id"] in move_map:
-            app["column_id"] = move_map[app["id"]]
-    st.session_state[PENDING_MOVES_KEY] = []
-
 
 # ---------------------------------------------------------------------------
 # Page render
 # ---------------------------------------------------------------------------
 
 def render_applications() -> None:
-    applications = _get_applications()
-    _apply_pending_moves(applications)
+    active_id = st.session_state.get("active_candidate_id")
+    if not active_id:
+        st.info("Select a candidate to view applications.")
+        return
+        
+    applications = get_applications(active_id)
 
     # ── Page header ──────────────────────────────────────────────
     total = len(applications)

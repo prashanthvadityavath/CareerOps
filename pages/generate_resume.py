@@ -4,7 +4,7 @@ import os
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
-from data.db_utils import get_full_candidate_profile
+from data.db_utils import get_full_candidate_profile, create_application, log_activity
 from intelligence.resume_builder import build_default_resume_text
 from intelligence.llm_matcher import analyze_job_match, MODEL_DEFAULTS
 
@@ -61,6 +61,21 @@ def _fetch_job_from_url():
         st.toast("Job description fetched!", icon="✅")
     except Exception as e:
         st.toast(f"Failed to fetch URL: {str(e)[:50]}", icon="❌")
+
+def _log_application():
+    active_id = st.session_state.get("active_candidate_id")
+    company = st.session_state.get("gen_company", "").strip()
+    role = st.session_state.get("gen_role", "").strip()
+    
+    analysis = st.session_state.get("job_analysis", {})
+    score = analysis.get("score", 0)
+    
+    if active_id and company and role:
+        create_application(active_id, company, role, f"{role} v1", score, "saved")
+        log_activity(active_id, "application_submitted", f"Saved application for {role} at {company}")
+        st.toast(f"Application for {company} logged to Kanban!", icon="✅")
+        st.session_state["gen_company"] = ""
+        st.session_state["gen_role"] = ""
 
 def render_generate_resume() -> None:
 
@@ -335,13 +350,19 @@ def render_generate_resume() -> None:
             disabled=is_disabled
         )
 
+        st.markdown("<div style='height:1px; background:rgba(128,128,128,0.12); margin:1rem 0;'></div>", unsafe_allow_html=True)
+        c_comp, c_role = st.columns(2)
+        company_input = c_comp.text_input("Company name", key="gen_company")
+        role_input = c_role.text_input("Role title", key="gen_role")
+        
         c1, c2 = st.columns(2)
         with c1:
             st.button("Download PDF", disabled=True)
         with c2:
-            st.button("Save and log application", disabled=True)
+            can_log = bool(active_id and company_input.strip() and role_input.strip())
+            st.button("Save and log application", disabled=not can_log, on_click=_log_application)
 
         st.markdown(
-            "<p style='font-size:11px; opacity:0.35; margin-top:6px;'>PDF export and save coming in Phase 3</p>",
+            "<p style='font-size:11px; opacity:0.35; margin-top:6px;'>PDF export coming in Phase 3</p>",
             unsafe_allow_html=True,
         )

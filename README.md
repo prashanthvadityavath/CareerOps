@@ -1,18 +1,19 @@
 # CareerOps – The Autonomous Career Command Center
 
 A modern SaaS dashboard UI for resume tailoring and job application tracking.
+CareerOps helps you manage multiple candidate profiles, dynamically match job descriptions using AI, and track your applications via a Kanban board.
 
-**Tech stack:** Streamlit, Pandas, Plotly, PostgreSQL (psycopg2).
+**Tech stack:** Streamlit, Pandas, Plotly, PostgreSQL (psycopg2), GenAI (Gemini, Grok, Qwen, OpenAI, Ollama).
 
 ## Prerequisites
 
-- **Python 3.11+** (uses `tomllib` for `scripts/init_db.py`)
-- **PostgreSQL** running locally (or reachable from your machine), e.g. Homebrew `postgresql@16` or Postgres.app
-- **pgAdmin** (optional) — useful for inspecting databases and running SQL by hand
+- **Python 3.11+**
+- **PostgreSQL** running locally (e.g., Homebrew `postgresql@16` or Postgres.app)
+- **API Keys** for your preferred AI models (configured inside the app UI)
 
-## Run the app (first time)
+## Setup & Installation
 
-From the repository root (the folder that contains `app.py`):
+From the repository root:
 
 ### 1. Virtual environment (recommended)
 
@@ -28,9 +29,7 @@ pip install -r requirements.txt
 ```
 
 ### 3. Configure database credentials
-
-Copy the example secrets file and edit it to match your PostgreSQL user, host, and the database name you want:
-
+Copy the example secrets file and edit it to match your PostgreSQL credentials:
 ```bash
 cp .streamlit/secrets.example.toml .streamlit/secrets.toml
 ```

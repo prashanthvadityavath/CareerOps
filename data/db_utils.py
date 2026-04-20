@@ -123,3 +123,68 @@ def get_full_candidate_profile(candidate_id: int) -> dict | None:
     profile["certifications"] = run_query("SELECT * FROM certifications WHERE candidate_id = %s ORDER BY issue_date DESC NULLS FIRST", (candidate_id,))
     
     return profile
+
+# ---------------------------------------------------------------------------
+# Tracking (Applications & Activity)
+# ---------------------------------------------------------------------------
+
+def setup_tracking_tables() -> None:
+    """Creates applications and activity_log tables if they don't exist."""
+    run_query("""
+        CREATE TABLE IF NOT EXISTS applications (
+            id SERIAL PRIMARY KEY,
+            candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
+            company VARCHAR(255),
+            role VARCHAR(255),
+            resume_tag VARCHAR(255),
+            match_score INTEGER,
+            column_id VARCHAR(50) DEFAULT 'saved',
+            date_applied DATE DEFAULT CURRENT_DATE,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """, fetch_results=False)
+    
+    run_query("""
+        CREATE TABLE IF NOT EXISTS activity_log (
+            id SERIAL PRIMARY KEY,
+            candidate_id INTEGER REFERENCES candidate(id) ON DELETE CASCADE,
+            event_type VARCHAR(50),
+            label TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """, fetch_results=False)
+
+def get_applications(candidate_id: int) -> list[dict]:
+    return run_query("""
+        SELECT id, company, role, resume_tag, match_score, column_id, 
+               to_char(date_applied, 'YYYY-MM-DD') as date_applied 
+        FROM applications 
+        WHERE candidate_id = %s 
+        ORDER BY updated_at DESC
+    """, (candidate_id,))
+
+def move_application(app_id: int, column_id: str) -> None:
+    run_query("""
+        UPDATE applications SET column_id = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s
+    """, (column_id, app_id), fetch_results=False)
+
+def create_application(candidate_id: int, company: str, role: str, resume_tag: str, match_score: int, column_id: str = 'saved') -> None:
+    run_query("""
+        INSERT INTO applications (candidate_id, company, role, resume_tag, match_score, column_id, date_applied)
+        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_DATE)
+    """, (candidate_id, company, role, resume_tag, match_score, column_id), fetch_results=False)
+
+def log_activity(candidate_id: int, event_type: str, label: str) -> None:
+    run_query("""
+        INSERT INTO activity_log (candidate_id, event_type, label, timestamp)
+        VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+    """, (candidate_id, event_type, label), fetch_results=False)
+
+def get_activity_timeline(candidate_id: int, limit: int = 10) -> list[dict]:
+    return run_query("""
+        SELECT event_type as type, label, to_char(timestamp, 'Mon DD at HH24:MI') as timestamp 
+        FROM activity_log 
+        WHERE candidate_id = %s 
+        ORDER BY timestamp DESC 
+        LIMIT %s
+    """, (candidate_id, limit))
