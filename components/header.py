@@ -109,57 +109,43 @@ def inject_css() -> None:
     }
     .co-icon-btn:hover { background: rgba(128,128,128,0.1); }
 
-    /* ── Navigation bar ──────────────────────────────────────── */
-    .co-navbar {
-        display: flex;
-        align-items: flex-end;
-        gap: 0;
-        padding: 0 1.5rem;
-        background: var(--background-color);
-        border-bottom: 1px solid rgba(128,128,128,0.15);
+    /* ── Nav buttons: Minimalist menu style ─── */
+    div[data-testid="stHorizontalBlock"]:has(.nav-marker) {
+        background: transparent;
+        padding: 0;
+        gap: 1.5rem;
         margin-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+        justify-content: center;
     }
-    .co-nav-item {
-        padding: 10px 16px;
-        font-size: 13px;
-        color: inherit;
-        opacity: 0.55;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        white-space: nowrap;
-        transition: opacity 0.15s;
-        text-decoration: none;
+    /* Force columns to shrink-wrap their text instead of stretching */
+    div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div {
+        width: auto !important;
+        flex: 0 1 auto !important;
     }
-    .co-nav-item:hover { opacity: 0.85; }
-    .co-nav-item.co-nav-active {
-        opacity: 1;
-        color: #185FA5;
-        border-bottom: 2px solid #185FA5;
-        font-weight: 500;
-    }
-
-    /* ── Nav buttons: strip Streamlit default button styling ─── */
-    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button {
+    div[data-testid="stHorizontalBlock"]:has(.nav-marker) [data-testid="stButton"] button {
         background: transparent !important;
         border: none !important;
         border-radius: 0 !important;
-        border-bottom: 2px solid transparent !important;
-        padding: 10px 16px !important;
-        font-size: 13px !important;
+        padding: 12px 4px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
         color: inherit !important;
-        opacity: 0.55;
-        transition: opacity 0.15s, border-color 0.15s;
+        opacity: 0.6;
+        transition: all 0.2s ease;
         width: 100%;
+        box-shadow: none !important;
+        border-bottom: 2px solid transparent !important;
     }
-    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:hover {
-        opacity: 0.85 !important;
-        color: inherit !important;
-    }
-    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button p strong {
+    div[data-testid="stHorizontalBlock"]:has(.nav-marker) [data-testid="stButton"] button:hover {
+        opacity: 0.9 !important;
         color: #185FA5 !important;
-        font-weight: 500;
     }
-    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:has(p strong) {
+    div[data-testid="stHorizontalBlock"]:has(.nav-marker) [data-testid="stButton"] button p strong {
+        color: #185FA5 !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-marker) [data-testid="stButton"] button:has(p strong) {
         opacity: 1 !important;
         border-bottom: 2px solid #185FA5 !important;
     }

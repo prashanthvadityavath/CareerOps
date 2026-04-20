@@ -28,14 +28,13 @@ PAGES = {
 }
 
 PAGE_ICONS = {
-    "Dashboard": "📊",
-    "Generate Resume": "📄",
-    "Applications": "📁",
-    "Analytics": "📈",
-    "Master Profile": "🧑‍💻",
-    "Settings": "⚙️",
+    "Dashboard": ":material/dashboard:",
+    "Generate Resume": ":material/description:",
+    "Applications": ":material/work:",
+    "Analytics": ":material/insights:",
+    "Master Profile": ":material/account_circle:",
+    "Settings": ":material/settings:",
 }
-
 
 def init_session_state() -> None:
     """Initialize all required session state variables with safe defaults."""
@@ -62,13 +61,14 @@ def render_nav() -> str:
     Render a horizontal nav bar using styled st.columns buttons.
     Returns the name of the currently active page.
     """
-    st.markdown("<div class='nav-marker'></div>", unsafe_allow_html=True)
     cols = st.columns(len(PAGES))
+    
+    cols[0].markdown("<div class='nav-marker'></div>", unsafe_allow_html=True)
     for col, name in zip(cols, PAGES):
-        icon = PAGE_ICONS[name]
         is_active = st.session_state[CURRENT_PAGE_KEY] == name
-        label = f"**{icon} {name}**" if is_active else f"{icon} {name}"
-        if col.button(label, key=f"nav_{name}", use_container_width=True):
+        label = f"**{name}**" if is_active else name
+        icon = PAGE_ICONS.get(name)
+        if col.button(label, icon=icon, key=f"nav_{name}", use_container_width=True):
             st.session_state[CURRENT_PAGE_KEY] = name
             st.query_params["page"] = name
             st.rerun()
@@ -77,15 +77,7 @@ def render_nav() -> str:
         """
         <style>
         div.element-container:has(.nav-marker) {
-            display: none;
-        }
-        /* Active nav button gets an underline accent */
-        div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] button p strong {
-            color: #185FA5;
-        }
-        div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] button:has(p strong) {
-            border-bottom: 2px solid #185FA5 !important;
-            border-radius: 0 !important;
+            display: none !important;
         }
         </style>
         """,
@@ -110,7 +102,6 @@ def main() -> None:
     )
 
     render_nav()
-    st.divider()
 
     current_page = st.session_state[CURRENT_PAGE_KEY]
     page_fn = PAGES.get(current_page, render_dashboard)
