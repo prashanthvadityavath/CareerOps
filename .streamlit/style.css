@@ -27,7 +27,8 @@ html, body, [class*="css"] {
 }
 
 /* ── Buttons: clean, no shadow ───────────────────────────────── */
-.stButton > button {
+.stButton > button,
+[data-testid="stFormSubmitButton"] > button {
     border-radius: 6px;
     font-weight: 500;
     font-size: 13px;
@@ -36,7 +37,8 @@ html, body, [class*="css"] {
     color: #FFFFFF !important;
     transition: all 0.15s ease;
 }
-.stButton > button:hover {
+.stButton > button:hover,
+[data-testid="stFormSubmitButton"] > button:hover {
     background: #144E87 !important;
     border-color: #144E87 !important;
     color: #FFFFFF !important;
