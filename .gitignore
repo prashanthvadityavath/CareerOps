@@ -1,34 +1,11 @@
-# Bytecode and caches
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# Secrets and local configuration
+.env
+.streamlit/secrets.toml
+user_keys.json
 
-# Virtual environments
+# Python environments and caches
+__pycache__/
+*.pyc
+*.pyo
 .venv/
 venv/
-env/
-ENV/
-
-# Streamlit
-.streamlit/secrets.toml
-
-# Environment and secrets
-.env
-.env.local
-*.log
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
