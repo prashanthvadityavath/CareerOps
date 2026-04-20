@@ -26,9 +26,10 @@ def _analyze_job():
     profile_text = build_default_resume_text(profile)
 
     try:
-        analysis = analyze_job_match(profile_text, job_desc, model_provider=model_provider, model_name=model_name)
-        st.session_state["job_analysis"] = analysis
-        st.toast(f"AI Analysis complete using {model_provider}!", icon="✅")
+        with st.spinner(f"Analyzing job match using {model_provider}..."):
+            analysis = analyze_job_match(profile_text, job_desc, model_provider=model_provider, model_name=model_name)
+            st.session_state["job_analysis"] = analysis
+            st.toast(f"AI Analysis complete using {model_provider}!", icon="✅")
     except Exception as e:
         st.toast(f"AI Analysis failed: {str(e)[:100]}", icon="❌")
 
@@ -39,26 +40,27 @@ def _fetch_job_from_url():
         return
         
     try:
-        # Basic headers to bypass simple bot protections
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, "html.parser")
-        
-        # Remove irrelevant elements like scripts, styles, navs
-        for element in soup(["script", "style", "nav", "footer", "header", "noscript"]):
-            element.extract()
+        with st.spinner("Fetching job description from URL..."):
+            # Basic headers to bypass simple bot protections
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
             
-        # Extract text and clean up excess whitespace
-        text = soup.get_text(separator="\n")
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        cleaned_text = "\n".join(lines)
-        
-        st.session_state["job_desc_input"] = cleaned_text
-        st.toast("Job description fetched!", icon="✅")
+            soup = BeautifulSoup(response.text, "html.parser")
+            
+            # Remove irrelevant elements like scripts, styles, navs
+            for element in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+                element.extract()
+                
+            # Extract text and clean up excess whitespace
+            text = soup.get_text(separator="\n")
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            cleaned_text = "\n".join(lines)
+            
+            st.session_state["job_desc_input"] = cleaned_text
+            st.toast("Job description fetched!", icon="✅")
     except Exception as e:
         st.toast(f"Failed to fetch URL: {str(e)[:50]}", icon="❌")
 

@@ -52,6 +52,23 @@ def _empty_state(message: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Dialog Modals
+# ---------------------------------------------------------------------------
+
+@st.dialog("Confirm Deletion")
+def confirm_deletion(table_name: str, record_id: int):
+    st.markdown("Are you sure you want to remove this item? **This action cannot be undone.**")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Cancel", use_container_width=True):
+            st.rerun()
+    with c2:
+        if st.button("Yes, delete", type="primary", use_container_width=True):
+            run_query(f"DELETE FROM {table_name} WHERE id = %s", (record_id,), fetch_results=False)
+            st.toast("Item deleted successfully.", icon="✅")
+            st.rerun()
+
+# ---------------------------------------------------------------------------
 # Section renderers
 # ---------------------------------------------------------------------------
 
@@ -196,11 +213,7 @@ def _render_skills(candidate_id: int) -> None:
                         st.rerun()
                 with c3:
                     if st.button("Remove", key=f"del_sk_{s['id']}"):
-                        run_query(
-                            "DELETE FROM technical_skills WHERE id = %s",
-                            (s["id"],), fetch_results=False,
-                        )
-                        st.rerun()
+                        confirm_deletion("technical_skills", s["id"])
                 _divider()
         else:
             _empty_state("No skill categories added yet.")
@@ -288,11 +301,7 @@ def _render_experience(candidate_id: int) -> None:
                         st.rerun()
                 with c3:
                     if st.button("Remove", key=f"del_exp_{e['id']}"):
-                        run_query(
-                            "DELETE FROM work_experience WHERE id = %s",
-                            (e["id"],), fetch_results=False,
-                        )
-                        st.rerun()
+                        confirm_deletion("work_experience", e["id"])
                 _divider()
         else:
             _empty_state("No work experience added yet.")
@@ -372,11 +381,7 @@ def _render_education(candidate_id: int) -> None:
                         st.rerun()
                 with c3:
                     if st.button("Remove", key=f"del_edu_{ed['id']}"):
-                        run_query(
-                            "DELETE FROM education WHERE id = %s",
-                            (ed["id"],), fetch_results=False,
-                        )
-                        st.rerun()
+                        confirm_deletion("education", ed["id"])
                 _divider()
         else:
             _empty_state("No education added yet.")
@@ -470,11 +475,7 @@ def _render_projects(candidate_id: int) -> None:
                         st.rerun()
                 with c3:
                     if st.button("Remove", key=f"del_proj_{p['id']}"):
-                        run_query(
-                            "DELETE FROM projects WHERE id = %s",
-                            (p["id"],), fetch_results=False,
-                        )
-                        st.rerun()
+                        confirm_deletion("projects", p["id"])
                 _divider()
         else:
             _empty_state("No projects added yet.")
@@ -559,11 +560,7 @@ def _render_certifications(candidate_id: int) -> None:
                         st.rerun()
                 with c3:
                     if st.button("Remove", key=f"del_cert_{c['id']}"):
-                        run_query(
-                            "DELETE FROM certifications WHERE id = %s",
-                            (c["id"],), fetch_results=False,
-                        )
-                        st.rerun()
+                        confirm_deletion("certifications", c["id"])
                 _divider()
         else:
             _empty_state("No certifications added yet.")
