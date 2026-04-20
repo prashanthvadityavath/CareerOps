@@ -1,7 +1,7 @@
 """Dashboard: KPI summary, application pipeline, activity timeline."""
 import streamlit as st
+import pandas as pd
 from data.db_utils import get_applications, get_activity_timeline
-from data.mock_data import get_kpi_sparkline_data
 from components import (
     render_kpi_card,
     render_kanban_card,
@@ -28,7 +28,33 @@ def render_dashboard() -> None:
     offers = len([a for a in applications if a['column_id'] == 'offer_rejected'])
     conversion_rate = round((offers / total_apps * 100), 1) if total_apps > 0 else 0.0
 
-    spark = get_kpi_sparkline_data()
+    # ── Dynamic Sparklines ───────────────────────────────────────
+    df_apps = pd.DataFrame(applications)
+    today = pd.Timestamp.today().normalize()
+    last_7_days = [today - pd.Timedelta(days=i) for i in range(6, -1, -1)]
+    days_labels = [d.strftime("%a") for d in last_7_days]
+    
+    if not df_apps.empty:
+        df_apps['date_applied'] = pd.to_datetime(df_apps['date_applied'])
+        
+    def get_trend(metric_val=None):
+        if df_apps.empty:
+            return [0] * 7
+        trend = []
+        for d in last_7_days:
+            if metric_val is None:
+                count = len(df_apps[df_apps['date_applied'] == d])
+            else:
+                count = len(df_apps[(df_apps['date_applied'] == d) & (df_apps['column_id'] == metric_val)])
+            trend.append(count)
+        return trend
+
+    spark = {
+        "applications": (days_labels, get_trend()),
+        "interviews": (days_labels, get_trend('interviewing')),
+        "offers": (days_labels, get_trend('offer_rejected')),
+        "conversion": (days_labels, [0] * 7)
+    }
 
     # ── Page header ──────────────────────────────────────────────
     st.markdown(

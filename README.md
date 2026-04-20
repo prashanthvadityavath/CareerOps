@@ -38,8 +38,7 @@ Edit `.streamlit/secrets.toml`: set `user`, `password`, `host`, `port`, and `dbn
 
 ### 4. Create the database and tables
 
-This connects to the maintenance database `postgres`, creates `[postgres].dbname` if missing, then runs `data/schema.sql`:
-
+Initialize the fresh database and apply the PostgreSQL schema:
 ```bash
 python scripts/init_db.py
 ```

@@ -2,10 +2,6 @@
 import streamlit as st
 import pandas as pd
 from data.db_utils import get_applications
-from data.mock_data import (
-    get_applications_per_week_df,
-    get_activity_heatmap_data,
-)
 from components import (
     applications_per_week_chart,
     resume_version_interview_chart,
@@ -56,9 +52,30 @@ def render_analytics() -> None:
     version_counts.columns = ['version', 'interview_rate']
     version_counts['interview_rate'] = version_counts['interview_rate'].round(1)
 
+    # Prepare applications per week
+    df['date_applied'] = pd.to_datetime(df['date_applied'])
+    weekly_df = df.groupby(df['date_applied'].dt.to_period('W')).size().reset_index(name='applications')
+    weekly_df['week'] = weekly_df['date_applied'].astype(str)
+    if weekly_df.empty:
+        weekly_df = pd.DataFrame({"week": [], "applications": []})
+
+    # Prepare activity heatmap (last 28 days)
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    heatmap_data = [[0] * 7 for _ in range(4)]
+    today = pd.Timestamp.today().normalize()
+    start_date = today - pd.Timedelta(days=27)
+    recent_apps = df[df['date_applied'] >= start_date]
+    for _, row in recent_apps.iterrows():
+        d = row['date_applied']
+        days_ago = (today - d).days
+        if 0 <= days_ago < 28:
+            week_idx = 3 - (days_ago // 7)
+            day_idx = d.weekday()
+            heatmap_data[week_idx][day_idx] += 1
+
     # ── Full-width: applications per week ────────────────────────
     st.plotly_chart(
-        applications_per_week_chart(get_applications_per_week_df()),
+        applications_per_week_chart(weekly_df),
         use_container_width=True,
         config=_CHART_CFG,
     )
@@ -89,7 +106,6 @@ def render_analytics() -> None:
     )
 
     # ── Full-width: activity heatmap ─────────────────────────────
-    days, heatmap_data = get_activity_heatmap_data()
     st.plotly_chart(
         activity_heatmap_chart(days, heatmap_data),
         use_container_width=True,
