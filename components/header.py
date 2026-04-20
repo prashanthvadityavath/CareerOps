@@ -135,11 +135,14 @@ def inject_css() -> None:
         transition: all 0.2s ease;
         width: 100%;
         box-shadow: none !important;
+        transform: none !important;
         border-bottom: 2px solid transparent !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-marker) [data-testid="stButton"] button:hover {
         opacity: 0.9 !important;
         color: #185FA5 !important;
+        box-shadow: none !important;
+        transform: none !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-marker) [data-testid="stButton"] button p strong {
         color: #185FA5 !important;

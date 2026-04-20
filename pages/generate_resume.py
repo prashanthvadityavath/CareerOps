@@ -198,12 +198,12 @@ def render_generate_resume() -> None:
             
             col1, col2 = st.columns(2)
             with col1:
-                st.button("Save Key", key=f"save_{key_name}", use_container_width=True, on_click=handle_save_key)
+                st.button("Save Key", key=f"save_{key_name}", on_click=handle_save_key)
             
             with col2:
-                st.button("Clear Key", key=f"clear_{key_name}", use_container_width=True, on_click=handle_clear_key)
+                st.button("Clear Key", key=f"clear_{key_name}", on_click=handle_clear_key)
 
-        st.button("Analyze job description", type="primary", use_container_width=True, on_click=_analyze_job)
+        st.button("Analyze job description", type="primary", on_click=_analyze_job)
 
         st.markdown(
             "<div style='height:1px; background:rgba(128,128,128,0.12); margin:1.25rem 0;'></div>",
@@ -337,9 +337,9 @@ def render_generate_resume() -> None:
 
         c1, c2 = st.columns(2)
         with c1:
-            st.button("Download PDF", use_container_width=True, disabled=True)
+            st.button("Download PDF", disabled=True)
         with c2:
-            st.button("Save and log application", use_container_width=True, disabled=True)
+            st.button("Save and log application", disabled=True)
 
         st.markdown(
             "<p style='font-size:11px; opacity:0.35; margin-top:6px;'>PDF export and save coming in Phase 3</p>",

@@ -108,7 +108,7 @@ def _render_candidate_form(selected_candidate_id: int | None) -> None:
                 key=f"{cand_prefix}_ps",
             )
 
-            submitted = st.form_submit_button("Save candidate", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Save candidate", type="primary")
 
             if submitted:
                 if full_name and email:
@@ -216,7 +216,7 @@ def _render_skills(candidate_id: int) -> None:
             skills_input = st.text_area("Skills — comma separated", value=skills_val, height=68, key=f"{sk_prefix}_val")
             fc1, fc2 = st.columns(2)
             with fc1:
-                if st.form_submit_button("Update skills" if edit_skill_id else "Add skills", type="primary", use_container_width=True):
+                if st.form_submit_button("Update skills" if edit_skill_id else "Add skills", type="primary"):
                     if category and skills_input:
                         skills_list = [s.strip() for s in skills_input.split(",") if s.strip()]
                         if edit_skill_id:
@@ -234,7 +234,7 @@ def _render_skills(candidate_id: int) -> None:
                             )
                         st.rerun()
             with fc2:
-                if edit_skill_id and st.form_submit_button("Cancel", use_container_width=True):
+                if edit_skill_id and st.form_submit_button("Cancel"):
                     st.session_state.pop("edit_skill_id", None)
                     st.rerun()
 
@@ -313,7 +313,7 @@ def _render_experience(candidate_id: int) -> None:
             tech_used  = st.text_input("Technologies — comma separated", value=t_val, key=f"{exp_prefix}_tech")
             fc1, fc2   = st.columns(2)
             with fc1:
-                if st.form_submit_button("Update experience" if edit_exp_id else "Add experience", type="primary", use_container_width=True):
+                if st.form_submit_button("Update experience" if edit_exp_id else "Add experience", type="primary"):
                     if company and role:
                         bullet_list = [b.strip() for b in bullets.split("\n") if b.strip()]
                         tech_list   = [t.strip() for t in tech_used.split(",") if t.strip()]
@@ -340,7 +340,7 @@ def _render_experience(candidate_id: int) -> None:
                             )
                         st.rerun()
             with fc2:
-                if edit_exp_id and st.form_submit_button("Cancel", use_container_width=True):
+                if edit_exp_id and st.form_submit_button("Cancel"):
                     st.session_state.pop("edit_exp_id", None)
                     st.rerun()
 
@@ -395,7 +395,7 @@ def _render_education(candidate_id: int) -> None:
             end_yr   = c2.number_input("End year",   min_value=1950, max_value=2100, step=1, value=edit_data["end_year"]   if edit_data else 2020, key=f"{edu_prefix}_ey")
             fc1, fc2 = st.columns(2)
             with fc1:
-                if st.form_submit_button("Update education" if edit_edu_id else "Add education", type="primary", use_container_width=True):
+                if st.form_submit_button("Update education" if edit_edu_id else "Add education", type="primary"):
                     if degree and inst:
                         if edit_edu_id:
                             run_query(
@@ -418,7 +418,7 @@ def _render_education(candidate_id: int) -> None:
                             )
                         st.rerun()
             with fc2:
-                if edit_edu_id and st.form_submit_button("Cancel", use_container_width=True):
+                if edit_edu_id and st.form_submit_button("Cancel"):
                     st.session_state.pop("edit_edu_id", None)
                     st.rerun()
 
@@ -494,7 +494,7 @@ def _render_projects(candidate_id: int) -> None:
             desc        = st.text_area("Description", value=edit_data["description"] if edit_data else "", height=68, key=f"{proj_prefix}_desc")
             fc1, fc2    = st.columns(2)
             with fc1:
-                if st.form_submit_button("Update project" if edit_proj_id else "Add project", type="primary", use_container_width=True):
+                if st.form_submit_button("Update project" if edit_proj_id else "Add project", type="primary"):
                     if proj_name:
                         tech_list = [t.strip() for t in tech_used.split(",") if t.strip()]
                         if edit_proj_id:
@@ -520,7 +520,7 @@ def _render_projects(candidate_id: int) -> None:
                             )
                         st.rerun()
             with fc2:
-                if edit_proj_id and st.form_submit_button("Cancel", use_container_width=True):
+                if edit_proj_id and st.form_submit_button("Cancel"):
                     st.session_state.pop("edit_proj_id", None)
                     st.rerun()
 
@@ -581,7 +581,7 @@ def _render_certifications(candidate_id: int) -> None:
             cred_url    = st.text_input("Credential URL — optional", value=edit_data["credential_url"] if edit_data else "", key=f"{cert_prefix}_url")
             fc1, fc2    = st.columns(2)
             with fc1:
-                if st.form_submit_button("Update certification" if edit_cert_id else "Add certification", type="primary", use_container_width=True):
+                if st.form_submit_button("Update certification" if edit_cert_id else "Add certification", type="primary"):
                     if cert_name and org:
                         if edit_cert_id:
                             run_query(
@@ -604,7 +604,7 @@ def _render_certifications(candidate_id: int) -> None:
                             )
                         st.rerun()
             with fc2:
-                if edit_cert_id and st.form_submit_button("Cancel", use_container_width=True):
+                if edit_cert_id and st.form_submit_button("Cancel"):
                     st.session_state.pop("edit_cert_id", None)
                     st.rerun()
 
