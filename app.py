@@ -62,6 +62,7 @@ def render_nav() -> str:
     Render a horizontal nav bar using styled st.columns buttons.
     Returns the name of the currently active page.
     """
+    st.markdown("<div class='nav-marker'></div>", unsafe_allow_html=True)
     cols = st.columns(len(PAGES))
     for col, name in zip(cols, PAGES):
         icon = PAGE_ICONS[name]
@@ -75,11 +76,14 @@ def render_nav() -> str:
     st.markdown(
         """
         <style>
+        div.element-container:has(.nav-marker) {
+            display: none;
+        }
         /* Active nav button gets an underline accent */
-        div[data-testid="stHorizontalBlock"] button p strong {
+        div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] button p strong {
             color: #185FA5;
         }
-        div[data-testid="stHorizontalBlock"] button:has(p strong) {
+        div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] button:has(p strong) {
             border-bottom: 2px solid #185FA5 !important;
             border-radius: 0 !important;
         }

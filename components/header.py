@@ -139,7 +139,7 @@ def inject_css() -> None:
     }
 
     /* ── Nav buttons: strip Streamlit default button styling ─── */
-    div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button {
+    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button {
         background: transparent !important;
         border: none !important;
         border-radius: 0 !important;
@@ -151,15 +151,15 @@ def inject_css() -> None:
         transition: opacity 0.15s, border-color 0.15s;
         width: 100%;
     }
-    div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:hover {
+    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:hover {
         opacity: 0.85 !important;
         color: inherit !important;
     }
-    div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button p strong {
+    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button p strong {
         color: #185FA5 !important;
         font-weight: 500;
     }
-    div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:has(p strong) {
+    div.element-container:has(.nav-marker) + div.element-container div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:has(p strong) {
         opacity: 1 !important;
         border-bottom: 2px solid #185FA5 !important;
     }

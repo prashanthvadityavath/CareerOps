@@ -31,12 +31,15 @@ html, body, [class*="css"] {
     border-radius: 6px;
     font-weight: 500;
     font-size: 13px;
-    border: 1px solid rgba(128,128,128,0.25) !important;
-    background: transparent !important;
-    transition: background 0.15s ease;
+    border: 1px solid #185FA5 !important;
+    background: #185FA5 !important;
+    color: #FFFFFF !important;
+    transition: all 0.15s ease;
 }
 .stButton > button:hover {
-    background: rgba(128,128,128,0.07) !important;
+    background: #144E87 !important;
+    border-color: #144E87 !important;
+    color: #FFFFFF !important;
 }
 
 /* ── Expanders ───────────────────────────────────────────────── */

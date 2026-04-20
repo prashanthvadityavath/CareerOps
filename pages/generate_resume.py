@@ -203,7 +203,7 @@ def render_generate_resume() -> None:
             with col2:
                 st.button("Clear Key", key=f"clear_{key_name}", use_container_width=True, on_click=handle_clear_key)
 
-        st.button("Analyze job description", use_container_width=True, on_click=_analyze_job)
+        st.button("Analyze job description", type="primary", use_container_width=True, on_click=_analyze_job)
 
         st.markdown(
             "<div style='height:1px; background:rgba(128,128,128,0.12); margin:1.25rem 0;'></div>",
