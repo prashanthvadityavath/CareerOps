@@ -2,7 +2,7 @@
 import streamlit as st
 from pathlib import Path
 from config import DAILY_APPLICATIONS_DONE_KEY, DAILY_GOAL_KEY, CURRENT_PAGE_KEY
-from data.db_utils import run_query
+from data.db_utils import run_query, get_applications_done_today
 
 
 def inject_css() -> None:
@@ -61,31 +61,38 @@ def inject_css() -> None:
         flex-shrink: 0;
     }
 
-    /* Daily goal pill */
+    /* Daily goal top edge progress bar */
+    .co-top-progress-track {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: rgba(128, 128, 128, 0.08);
+        z-index: 1000;
+    }
+    .co-top-progress-fill {
+        height: 100%;
+        transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.3s ease;
+    }
+
+    /* Daily goal badge */
     .co-goal-pill {
         display: flex;
         align-items: center;
-        gap: 8px;
-        background: rgba(128,128,128,0.07);
-        border: 1px solid rgba(128,128,128,0.15);
-        border-radius: 20px;
-        padding: 4px 14px;
-        font-size: 12px;
+        gap: 6px;
+        background: transparent;
+        border: 1px solid rgba(128,128,128,0.18);
+        border-radius: 6px;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 500;
         color: inherit;
-        opacity: 0.85;
+        transition: background 0.2s ease, border-color 0.2s ease;
     }
-    .co-goal-bar-track {
-        width: 60px;
-        height: 4px;
-        background: rgba(128,128,128,0.2);
-        border-radius: 2px;
-        overflow: hidden;
-    }
-    .co-goal-bar-fill {
-        height: 100%;
-        border-radius: 2px;
-        background: #1D9E75;
-        transition: width 0.3s ease;
+    .co-goal-pill:hover {
+        background: rgba(128,128,128,0.04);
+        border-color: rgba(128,128,128,0.3);
     }
 
     /* Right controls */
@@ -245,22 +252,28 @@ def render_header(daily_done: int = 0, daily_goal: int = 5) -> None:
     active_goal = cand_goals.get(current_id, daily_goal)
     st.session_state[DAILY_GOAL_KEY] = active_goal
 
-    pct = min(int((daily_done / active_goal) * 100), 100) if active_goal > 0 else 0
+    active_done = daily_done
+    if current_id:
+        active_done = get_applications_done_today(current_id)
+        st.session_state[DAILY_APPLICATIONS_DONE_KEY] = active_done
+
+    pct = min(int((active_done / active_goal) * 100), 100) if active_goal > 0 else 0
     goal_color = "#1D9E75" if pct >= 100 else "#185FA5" if pct >= 50 else "#BA7517"
 
     st.markdown(
         f"""
         <div class="co-header">
+            <div class="co-top-progress-track">
+                <div class="co-top-progress-fill" style="width:{pct}%; background:{goal_color};"></div>
+            </div>
             <div class="co-logo">
                 <div class="co-logo-icon">C</div>
                 CareerOps
             </div>
-            <div class="co-goal-pill">
-                <span>{daily_done}/{active_goal} today</span>
-                <div class="co-goal-bar-track">
-                    <div class="co-goal-bar-fill" style="width:{pct}%; background:{goal_color};"></div>
-                </div>
-                <span style="opacity:0.6; font-size:11px;">{pct}%</span>
+            <div class="co-goal-pill" title="Daily Application Goal">
+                <span style="color: {goal_color}; margin-right: 2px;">🎯</span>
+                <span>{active_done} / {active_goal} today</span>
+                <span style="opacity:0.5; font-size:11px; margin-left: 2px;">({pct}%)</span>
             </div>
             <div class="co-right" style="gap: 20px;">
                 <div class="co-icon-btn" title="Notifications">🔔</div>

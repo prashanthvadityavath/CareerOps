@@ -163,6 +163,14 @@ def get_applications(candidate_id: int) -> list[dict]:
         ORDER BY updated_at DESC
     """, (candidate_id,))
 
+def get_applications_done_today(candidate_id: int) -> int:
+    res = run_query("""
+        SELECT COUNT(*) as count 
+        FROM applications 
+        WHERE candidate_id = %s AND date_applied = CURRENT_DATE
+    """, (candidate_id,))
+    return res[0]["count"] if res else 0
+
 def move_application(app_id: int, column_id: str) -> None:
     run_query("""
         UPDATE applications SET column_id = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s

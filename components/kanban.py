@@ -40,7 +40,6 @@ def _on_move_callback(app_id: str, key_suffix: str) -> None:
         active_id = st.session_state.get("active_candidate_id")
         if active_id:
             log_activity(active_id, "status_changed", f"Application moved to {label}")
-        st.rerun()
 
 
 def render_kanban_card(

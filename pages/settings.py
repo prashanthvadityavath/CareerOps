@@ -77,6 +77,7 @@ def render_settings() -> None:
             run_query("UPDATE candidate SET daily_goal = %s WHERE id = %s", (new_goal, active_id), fetch_results=False)
             st.session_state[DAILY_GOAL_KEY] = new_goal
             st.toast(f"Goal saved: {new_goal}!", icon="✅")
+            st.rerun()
 
     _divider()
 
