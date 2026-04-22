@@ -34,7 +34,10 @@ def render_applications() -> None:
     # ── Kanban columns ───────────────────────────────────────────
     cols = st.columns(len(KANBAN_COLUMNS))
     for i, (col_id, col_label) in enumerate(KANBAN_COLUMNS):
-        col_apps = [a for a in applications if a["column_id"] == col_id]
+        if col_id == "offer_rejected":
+            col_apps = [a for a in applications if a["column_id"] in ("offer_rejected", "offered", "rejected")]
+        else:
+            col_apps = [a for a in applications if a["column_id"] == col_id]
         with cols[i]:
             st.markdown(
                 f"""
@@ -75,6 +78,6 @@ def render_applications() -> None:
                         app["resume_tag"],
                         app["match_score"],
                         app["date_applied"],
-                        col_id,
+                        app["column_id"],
                         key_suffix="app",
                     )

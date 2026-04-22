@@ -25,7 +25,7 @@ def render_dashboard() -> None:
 
     total_apps = len(applications)
     interviews = len([a for a in applications if a['column_id'] == 'interviewing'])
-    offers = len([a for a in applications if a['column_id'] == 'offer_rejected'])
+    offers = len([a for a in applications if a['column_id'] in ('offer_rejected', 'offered')])
     conversion_rate = round((offers / total_apps * 100), 1) if total_apps > 0 else 0.0
 
     # ── Dynamic Sparklines ───────────────────────────────────────
@@ -44,6 +44,8 @@ def render_dashboard() -> None:
         for d in last_7_days:
             if metric_val is None:
                 count = len(df_apps[df_apps['date_applied'] == d])
+            elif isinstance(metric_val, tuple):
+                count = len(df_apps[(df_apps['date_applied'] == d) & (df_apps['column_id'].isin(metric_val))])
             else:
                 count = len(df_apps[(df_apps['date_applied'] == d) & (df_apps['column_id'] == metric_val)])
             trend.append(count)
@@ -52,7 +54,7 @@ def render_dashboard() -> None:
     spark = {
         "applications": (days_labels, get_trend()),
         "interviews": (days_labels, get_trend('interviewing')),
-        "offers": (days_labels, get_trend('offer_rejected')),
+        "offers": (days_labels, get_trend(('offer_rejected', 'offered'))),
         "conversion": (days_labels, [0] * 7)
     }
 
@@ -121,7 +123,10 @@ def render_dashboard() -> None:
         )
         cols = st.columns(len(KANBAN_COLUMNS))
         for i, (col_id, col_label) in enumerate(KANBAN_COLUMNS):
-            col_apps = [a for a in applications if a["column_id"] == col_id]
+            if col_id == "offer_rejected":
+                col_apps = [a for a in applications if a["column_id"] in ("offer_rejected", "offered", "rejected")]
+            else:
+                col_apps = [a for a in applications if a["column_id"] == col_id]
             with cols[i]:
                 st.markdown(
                     f"""
@@ -147,7 +152,7 @@ def render_dashboard() -> None:
                         app["resume_tag"],
                         app["match_score"],
                         app["date_applied"],
-                        col_id,
+                        app["column_id"],
                         key_suffix="dash",
                     )
 

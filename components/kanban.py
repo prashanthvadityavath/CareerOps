@@ -9,12 +9,22 @@ KANBAN_COLUMNS = [
     ("offer_rejected", "Offer / Rejected"),
 ]
 
+MOVE_OPTIONS = [
+    ("saved",          "Saved"),
+    ("applied",        "Applied"),
+    ("interviewing",   "Interviewing"),
+    ("offered",        "Offered"),
+    ("rejected",       "Rejected"),
+]
+
 # Status accent colors — left border on each card
 _COLUMN_ACCENT = {
     "saved":          "rgba(128,128,128,0.4)",
     "applied":        "#185FA5",
     "interviewing":   "#BA7517",
-    "offer_rejected": "#1D9E75",
+    "offer_rejected": "rgba(128,128,128,0.4)",
+    "offered":        "#1D9E75",
+    "rejected":       "#D85A30",
 }
 
 # Match score color thresholds
@@ -32,7 +42,7 @@ def _on_move_callback(app_id: str, key_suffix: str) -> None:
     if not label:
         return
     target_id = next(
-        (cid for cid, lbl in KANBAN_COLUMNS if lbl == label), None
+        (cid for cid, lbl in MOVE_OPTIONS if lbl == label), None
     )
     if target_id is not None:
         move_application(int(app_id), target_id)
@@ -59,9 +69,15 @@ def render_kanban_card(
     accent = _COLUMN_ACCENT.get(current_column, "rgba(128,128,128,0.3)")
     score_color = _score_color(match_score)
 
+    bg_style = ""
+    if current_column == "offered":
+        bg_style = "background-color: rgba(29, 158, 117, 0.15);"
+    elif current_column == "rejected":
+        bg_style = "background-color: rgba(216, 90, 48, 0.15);"
+
     st.markdown(
         f"""
-        <div class="kanban-card" style="border-left: 3px solid {accent};">
+        <div class="kanban-card" style="border-left: 3px solid {accent}; {bg_style}">
             <p style="font-size:13px; font-weight:600; margin:0 0 2px;">{company}</p>
             <p style="font-size:12px; opacity:0.65; margin:0 0 6px;">{role}</p>
             <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -82,12 +98,13 @@ def render_kanban_card(
         unsafe_allow_html=True,
     )
 
-    other_columns = [lbl for cid, lbl in KANBAN_COLUMNS if cid != current_column]
+    other_columns = [lbl for cid, lbl in MOVE_OPTIONS if cid != current_column]
     if other_columns:
         st.selectbox(
             "Move to",
-            options=["Move to..."] + other_columns,
-            index=0,
+            options=other_columns,
+            index=None,
+            placeholder="Move to...",
             key=f"move_{app_id}_{key_suffix}",
             label_visibility="collapsed",
             on_change=_on_move_callback,
