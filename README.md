@@ -1,80 +1,159 @@
-# CareerOps – The Autonomous Career Command Center
+# 🚀 CareerOps – The Autonomous Career Command Center
 
-A modern SaaS dashboard UI for resume tailoring and job application tracking.
-CareerOps helps you manage multiple candidate profiles, dynamically match job descriptions using AI, and track your applications via a Kanban board.
+CareerOps is a modern, AI-powered SaaS dashboard built to revolutionize how job seekers manage their career search. It combines dynamic resume tailoring, intelligent job matching, and comprehensive application tracking into a single, seamless platform.
 
-**Tech stack:** Streamlit, Pandas, Plotly, PostgreSQL (psycopg2), GenAI (Gemini, Grok, Qwen, OpenAI, Ollama).
+Whether you are an **End User** trying to land your dream job or a **Developer** looking to contribute to a full-stack Python AI application, this guide has you covered.
 
-## Prerequisites
+---
 
-- **Python 3.11+**
-- **PostgreSQL** running locally (e.g., Homebrew `postgresql@16` or Postgres.app)
-- **API Keys** for your preferred AI models (configured inside the app UI)
+## 🌟 Features (For Users)
 
-## Setup & Installation
+CareerOps acts as your personal AI recruiter and career coach.
 
-From the repository root:
+*   **🎭 Multi-Profile Management:** Manage different master candidate profiles. Perfect if you are applying for distinctly different roles (e.g., Data Scientist vs. Software Engineer).
+*   **🤖 AI Resume Tailoring:** Paste a job description and let AI (Gemini, OpenAI, Grok, Qwen, or local Ollama models) rewrite your master resume to highlight the most relevant skills.
+*   **📊 Match Scoring & Analysis:** Automatically calculate a "Match Score" between your profile and a job description. Get actionable insights on missing keywords and a checklist of requirements.
+*   **📋 Kanban Application Tracking:** Visually track your job applications through customizable stages (`Saved`, `Applied`, `Interviewing`, `Offered`, `Rejected`).
+*   **🎯 Daily Goals & Analytics:** Set daily application goals, monitor your conversion rates via dynamic Sparklines, and view a rich timeline of your recent job search activity.
 
-### 1. Virtual environment (recommended)
+---
+
+## 🛠️ Architecture & Tech Stack (For Developers)
+
+CareerOps is built using a pure Python full-stack approach, leveraging Streamlit for the frontend UI, PostgreSQL for data persistence, and LangChain for agentic AI workflows.
+
+### Tech Stack
+*   **Frontend / UI:** Streamlit (with custom injected CSS for a modern, sticky-header SaaS look).
+*   **Backend Logic:** Python 3.11+
+*   **Database:** PostgreSQL (accessed via `psycopg2` with automatic connection pooling and reconnects).
+*   **AI Integration:** LangChain, Google Generative AI SDK, OpenAI SDK, Groq SDK. Supports cloud models and local inference via Ollama.
+*   **Data Viz:** Pandas and Plotly (for analytics and dashboard sparklines).
+
+### Database Schema Highlights
+The PostgreSQL database is fully relational. Key tables include:
+*   `candidate`: The master profile entity.
+*   *Profile Data:* `technical_skills`, `work_experience`, `education`, `projects`, `certifications` (all foreign keyed to `candidate`).
+*   `applications`: Tracks individual job applications, associated match scores, and current Kanban `column_id`.
+*   `activity_log`: An audit trail of user actions (e.g., status changes, profile creations) for the timeline view.
+
+### AI Agentic Workflow (`intelligence/agents.py`)
+CareerOps uses LangChain to string together expert AI personas:
+1.  **Extractor Agent:** Parses raw job descriptions into structured `Company` and `Role` JSON.
+2.  **Matcher Agent:** Calculates a 0-100 match score and identifies missing keywords.
+3.  **Researcher Agent:** Summarizes company culture and recent trends.
+4.  **Writer Agent:** Rewrites the resume using the missing keywords and company research, maintaining factual accuracy and Markdown formatting.
+
+---
+
+## ⚙️ Setup & Installation
+
+Follow these steps to get a local development environment running.
+
+### Prerequisites
+- **Python 3.11+** installed.
+- **PostgreSQL** running locally (e.g., via Homebrew `postgresql@16`, Postgres.app, or Docker).
+- API Keys for your preferred AI models (can be configured in the app UI later).
+
+### 1. Clone & Create Virtual Environment
 
 ```bash
+git clone <your-repo-url>
+cd CareerOps
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
 ```
 
-### 2. Install dependencies
+### 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure database credentials
-Copy the example secrets file and edit it to match your PostgreSQL credentials:
+### 3. Database Configuration
+
+CareerOps uses Streamlit's secrets management for database credentials.
+
 ```bash
 cp .streamlit/secrets.example.toml .streamlit/secrets.toml
 ```
 
-Edit `.streamlit/secrets.toml`: set `user`, `password`, `host`, `port`, and `dbname` (e.g. `careerops`). The `dbname` value is the database the app will use; it does not need to exist yet.
+Open `.streamlit/secrets.toml` and configure your local PostgreSQL credentials:
+```toml
+[postgres]
+host = "localhost"
+port = 5432
+dbname = "careerops"
+user = "postgres"
+password = "your_password"
+```
+*(Note: The database `careerops` does not need to exist yet; the initialization script will create it.)*
 
-### 4. Create the database and tables
+### 4. Initialize Database & Schema
 
-Initialize the fresh database and apply the PostgreSQL schema:
+Run the database initialization script to create the DB and apply `data/schema.sql`:
+
 ```bash
 python scripts/init_db.py
 ```
 
-Use `python scripts/init_db.py --db-only` to only create the database, or `--schema-only` if the database already exists and you only need tables.
+*Optional Flags:*
+*   `--db-only`: Only run `CREATE DATABASE`.
+*   `--schema-only`: Only apply the schema (useful if you created the DB manually).
 
-### 5. Start Streamlit
+### 5. Run the Application
 
 ```bash
 streamlit run app.py
 ```
+The app will open automatically in your browser at `http://localhost:8501`.
 
-Open the URL shown in the terminal (typically [http://localhost:8501](http://localhost:8501)).
+---
 
-### 6. Verify the database (optional)
+## 📁 Project Structure
 
-In the app, open **Settings** and use **Test Database Connection**. **Master Profile** requires a working PostgreSQL connection to load and save candidates.
-
-## Run the app (after setup)
-
-```bash
-source .venv/bin/activate   # if you use a venv
-streamlit run app.py
+```text
+CareerOps/
+├── app.py                     # Main application entry point & routing
+├── config.py                  # Global configurations and Session State keys
+├── components/                # Reusable Streamlit UI components
+│   ├── header.py              # Sticky top nav & daily goal progress
+│   ├── kanban.py              # Kanban board cards and logic
+│   ├── kpi_card.py            # Dashboard metrics with Sparklines
+│   └── timeline.py            # Activity history feed
+├── data/
+│   ├── db_utils.py            # Postgres connection pool and CRUD operations
+│   └── schema.sql             # SQL definitions for all database tables
+├── intelligence/              # AI and LLM logic
+│   ├── agents.py              # LangChain agent chains and Pydantic models
+│   └── llm_matcher.py         # Direct API wrappers for Gemini, OpenAI, Ollama
+├── pages/                     # Application Screens
+│   ├── dashboard.py           # Home screen (KPIs, Pipeline, Activity)
+│   ├── applications.py        # Full-page Kanban view
+│   ├── generate_resume.py     # AI tailoring workflow
+│   ├── analytics.py           # Deep-dive charts
+│   ├── master_profile.py      # Candidate CRUD UI
+│   └── settings.py            # API key management and DB tests
+├── scripts/
+│   └── init_db.py             # Database creation script
+└── .streamlit/
+    ├── config.toml            # Streamlit theme config
+    ├── secrets.toml           # (Git ignored) Database & API secrets
+    └── style.css              # Custom global CSS injections
 ```
 
-## Structure
+---
 
-- **app.py** – Entry point; sidebar navigation and page routing
-- **config.py** – Session state keys and app config
-- **pages/** – Dashboard, Generate Resume, Applications, Analytics, Master Profile, Settings
-- **components/** – Reusable KPI cards, Kanban, timeline, charts
-- **data/mock_data.py** – Dummy data for views that do not use the database
-- **data/db_utils.py** – PostgreSQL connection and queries (reads `.streamlit/secrets.toml`)
-- **data/schema.sql** – Table definitions for Master Profile
-- **scripts/init_db.py** – Create database and apply schema before first run
+## 🔐 Security & Secrets
 
-## Future
+API Keys and Database credentials should **never** be committed to version control.
+*   **API Keys** can be entered directly in the `Settings` page of the UI (saved to a local `user_keys.json`), added to `.streamlit/secrets.toml`, or exported as standard environment variables (e.g., `OPENAI_API_KEY`).
+*   **PostgreSQL credentials** must live strictly in `.streamlit/secrets.toml`.
 
-Resume generation, richer persistence beyond the master profile, and PDF export can be extended on top of the current stack.
+---
+
+## 🗺️ Roadmap & Future Enhancements
+
+- [ ] **PDF Export:** Allow users to export the AI-generated tailored resumes directly to cleanly formatted PDFs.
+- [ ] **Email Integration:** Connect via IMAP/Gmail API to automatically move Kanban cards based on interview invite emails.
+- [ ] **Browser Extension:** A companion Chrome extension to parse job descriptions directly from LinkedIn/Indeed and send them to the CareerOps database.
+- [ ] **Advanced Agentic Research:** Grant the Research Agent direct web-search capabilities (e.g., via Tavily or SerpAPI) for real-time company news.
