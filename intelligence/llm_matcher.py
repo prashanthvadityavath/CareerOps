@@ -1,7 +1,6 @@
 """AI integration for analyzing candidate profiles against job descriptions."""
 import json
 import os
-
 import google.generativeai as genai
 import streamlit as st
 from dotenv import load_dotenv
@@ -44,10 +43,10 @@ def _get_provider_credential(provider: str, credential_name: str) -> str | None:
 
 
 @st.cache_resource
-def _get_gemini_model(api_key: str) -> genai.GenerativeModel:
+def _get_gemini_model(api_key: str, model_name: str) -> genai.GenerativeModel:
     """Initializes and caches the Gemini client to avoid reconfiguring on every call."""
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.5-flash")
+    return genai.GenerativeModel(model_name)
 
 
 @st.cache_resource
@@ -139,7 +138,7 @@ def analyze_job_match(
     raw_text = ""
     try:
         if model_provider == "Gemini":
-            model = _get_gemini_model(credential)
+            model = _get_gemini_model(credential, active_model)
             response = model.generate_content(
                 prompt,
                 generation_config=genai.GenerationConfig(
