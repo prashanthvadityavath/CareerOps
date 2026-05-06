@@ -1,6 +1,7 @@
 """Generate Resume: job description input, keyword extraction, match score, resume editor."""
 import json
 import os
+import re
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
@@ -14,6 +15,72 @@ def _divider():
         "<div style='height:1px; background:rgba(128,128,128,0.12); margin:1.25rem 0;'></div>",
         unsafe_allow_html=True,
     )
+
+
+def _safe_filename_part(value: str | None, fallback: str = "Resume") -> str:
+    """Return a compact, cross-platform safe filename segment."""
+    text = str(value or "").strip() or fallback
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^\w\s.-]", " ", text)
+    text = re.sub(r"[\s-]+", "_", text)
+    text = re.sub(r"_+", "_", text).strip("._")
+    return text[:80].strip("._") or fallback
+
+
+def _target_resume_label() -> str:
+    company = st.session_state.get("gen_company", "").strip()
+    role = st.session_state.get("gen_role", "").strip()
+
+    if company and role:
+        return f"{company} - {role}"
+    if company:
+        return company
+    if role:
+        return role
+    return "Updated Resume"
+
+
+def _next_resume_version_name(active_id: int) -> str:
+    versions = st.session_state.get(f"resume_versions_{active_id}", {})
+    base_label = _target_resume_label()
+    pattern = re.compile(rf"^{re.escape(base_label)} v(\d+)$")
+
+    existing_numbers = []
+    for version_name in versions:
+        match = pattern.match(version_name)
+        if match:
+            existing_numbers.append(int(match.group(1)))
+
+    version_number = max(existing_numbers, default=0) + 1
+    new_version_name = f"{base_label} v{version_number}"
+    while new_version_name in versions:
+        version_number += 1
+        new_version_name = f"{base_label} v{version_number}"
+    return new_version_name
+
+
+def _current_resume_version_name(active_id: int | None) -> str:
+    if not active_id:
+        return "Resume"
+    return st.session_state.get(f"current_version_name_{active_id}", "Master Profile")
+
+
+def _build_resume_download_stem(version_name: str) -> str:
+    company = st.session_state.get("gen_company", "").strip()
+    role = st.session_state.get("gen_role", "").strip()
+    version_label = version_name.strip() or "Resume"
+    lower_version = version_label.lower()
+
+    parts = ["CareerOps"]
+    if company and company.lower() not in lower_version:
+        parts.append(company)
+    if role and role.lower() not in lower_version:
+        parts.append(role)
+    parts.append(version_label)
+
+    safe_parts = [_safe_filename_part(part) for part in parts]
+    return "_".join(part for part in safe_parts if part)
+
 
 def _analyze_job():
     active_id = st.session_state.get("active_candidate_id")
@@ -114,8 +181,7 @@ def _upgrade_resume(is_rewrite=False):
             
             # Handle versioning
             versions = st.session_state.get(f"resume_versions_{active_id}", {})
-            v_count = sum(1 for k in versions.keys() if "Updated Resume v" in k)
-            new_version_name = f"Updated Resume v{v_count + 1}"
+            new_version_name = _next_resume_version_name(active_id)
             
             versions[new_version_name] = tailored_resume
             st.session_state[f"resume_versions_{active_id}"] = versions
@@ -172,7 +238,8 @@ def _log_application():
     score = analysis.get("score", 0)
     
     if active_id and company and role:
-        create_application(active_id, company, role, f"{role} v1", score, "saved")
+        resume_tag = _current_resume_version_name(active_id)
+        create_application(active_id, company, role, resume_tag, score, "saved")
         log_activity(active_id, "application_submitted", f"Saved application for {role} at {company}")
         st.toast(f"Application for {company} logged to Kanban!", icon="✅")
         st.session_state["gen_company"] = ""
@@ -180,7 +247,7 @@ def _log_application():
 
 
 @st.dialog("Print View & Download", width="large")
-def print_view_dialog(resume_text: str):
+def print_view_dialog(resume_text: str, download_stem: str):
     st.markdown("### Resume Preview")
     
     # We display it inside a clean container
@@ -202,7 +269,7 @@ def print_view_dialog(resume_text: str):
             st.download_button(
                 label="📥 Download PDF",
                 data=pdf_bytes,
-                file_name="resume.pdf",
+                file_name=f"{download_stem}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
@@ -210,7 +277,7 @@ def print_view_dialog(resume_text: str):
             st.download_button(
                 label="📝 Download DOCX",
                 data=docx_bytes,
-                file_name="resume.docx",
+                file_name=f"{download_stem}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 use_container_width=True
             )
@@ -617,7 +684,12 @@ def render_generate_resume() -> None:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("🖨️ Print View", disabled=is_disabled, use_container_width=True):
-                print_view_dialog(resume_text)
+                current_version = _current_resume_version_name(active_id)
+                current_resume_text = st.session_state.get(f"resume_editor_{active_id}", resume_text)
+                if active_id:
+                    st.session_state[f"resume_versions_{active_id}"][current_version] = current_resume_text
+                download_stem = _build_resume_download_stem(current_version)
+                print_view_dialog(current_resume_text, download_stem)
         with c2:
             can_log = bool(active_id and company_input.strip() and role_input.strip())
             st.button("Save and log application", disabled=not can_log, on_click=_log_application)
